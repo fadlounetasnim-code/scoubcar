@@ -101,58 +101,7 @@ function generateCustomerID() {
 // 1. APPLICATION INITIALIZATION & CORE AUTHENTICATION TRIGGERS
 // ==========================================================================
 
-if (session) {
-  try {
-    // Fetch public profile
-    const { data: profile, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
 
-    if (error || !profile) {
-      currentUser = {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.name || 'مستخدم جديد',
-        role: session.user.user_metadata?.role || 'Employee'
-      };
-    } else {
-      currentUser = profile;
-    }
-
-    currentUserRole = currentUser.role;
-
-    document.getElementById('header-username').textContent = currentUser.name;
-    document.getElementById('header-avatar').textContent = currentUser.name.charAt(0);
-
-    applyRolePermissions();
-
-    // Show app immediately
-    loginOverlay.style.display = 'none';
-    appShell.style.display = 'flex';
-
-    initApp();
-
-    // Load data in background
-    loadAllData()
-      .then(() => {
-        setupRealtime();
-        console.log("Data loaded successfully");
-      })
-      .catch((err) => {
-        console.error("Data loading failed:", err);
-      });
-
-  } catch (err) {
-    console.error("Failed to initialize user session:", err);
-
-    loginOverlay.style.display = 'none';
-    appShell.style.display = 'flex';
-
-    initApp();
-  }
-}
 
 async function handleLogin() {
   const emailInput = document.getElementById('login-username').value.trim();
