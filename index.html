@@ -13,6 +13,14 @@
 </head>
 <body>
 
+  <!-- Loading Spinner Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <div class="loading-text">جاري تحميل البيانات...</div>
+    </div>
+  </div>
+
   <!-- ==========================================================================
        1. LOGIN OVERLAY
        ========================================================================== -->
@@ -343,6 +351,7 @@
                   </tbody>
                 </table>
               </div>
+              <div id="shipments-pagination" class="pagination-container" style="display: none;"></div>
             </div>
           </div>
         </section>
@@ -382,6 +391,7 @@
                   </tbody>
                 </table>
               </div>
+              <div id="customers-pagination" class="pagination-container" style="display: none;"></div>
             </div>
           </div>
         </section>

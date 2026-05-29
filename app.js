@@ -12,6 +12,26 @@ let cachedInvoices = [];
 let cachedUsers = [];
 let cachedSettings = {};
 
+// Pagination Limits
+let shipmentsLimit = 50;
+let customersLimit = 50;
+
+// View Dirty States
+let viewDirtyState = {
+  dashboard: true,
+  shipments: true,
+  customers: true,
+  pricing: true,
+  reports: true,
+  settings: true
+};
+
+function markAllViewsDirty() {
+  for (let view in viewDirtyState) {
+    viewDirtyState[view] = true;
+  }
+}
+
 // User Session States
 let currentUser = null;
 let currentUserRole = null; // 'Admin' or 'Employee'
@@ -27,6 +47,25 @@ let currentEditingShipment = null;
 let isRealtimeListening = false;
 
 // Helpers
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+function showLoader() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function hideLoader() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
 const STATUS_AR = {
   'received': 'قيد الاستلام',
   'processing': 'قيد المعالجة',
@@ -200,6 +239,7 @@ function applyRolePermissions() {
 // Fetch all database records into memory cache
 async function loadAllData() {
   try {
+    showLoader();
     const [pricesRes, settingsRes, customersRes, shipmentsRes, invoicesRes] = await Promise.all([
       supabase.from('country_prices').select('*'),
       supabase.from('settings').select('*'),
@@ -228,8 +268,12 @@ async function loadAllData() {
       const { data: usersData } = await supabase.from('users').select('*');
       cachedUsers = usersData || [];
     }
+    
+    markAllViewsDirty();
   } catch (err) {
     console.error("Error loading database tables:", err);
+  } finally {
+    hideLoader();
   }
 }
 
@@ -328,7 +372,8 @@ function handleRealtimeEvent(table, payload) {
   }
   
   // Refresh layout
-  refreshActiveView();
+  markAllViewsDirty();
+  refreshActiveViewDebounced();
 }
 
 function initApp() {
@@ -356,41 +401,68 @@ function switchView(viewName) {
   const targetPanel = document.getElementById(`view-${viewName}`);
   if (targetPanel) targetPanel.classList.add('active');
 
+  const prevView = currentView;
   currentView = viewName;
 
   const pageTitle = document.getElementById('page-view-title');
   const pageSubtitle = document.getElementById('page-view-subtitle');
 
+  if (viewName === 'shipments') {
+    shipmentsLimit = 50;
+  } else if (viewName === 'customers') {
+    customersLimit = 50;
+  }
+
+  const shouldRender = (prevView !== viewName) || viewDirtyState[viewName];
+
   switch (viewName) {
     case 'dashboard':
       pageTitle.textContent = 'لوحة التحكم';
       pageSubtitle.textContent = 'نظرة عامة على نشاط وكالة الشحن الدولي اليوم';
-      renderDashboard();
+      if (shouldRender || viewDirtyState['dashboard']) {
+        renderDashboard();
+        viewDirtyState['dashboard'] = false;
+      }
       break;
     case 'shipments':
       pageTitle.textContent = 'الطرود والشحنات';
       pageSubtitle.textContent = 'إدارة ومتابعة الشحنات والطرود الصادرة إلى أوروبا';
-      renderShipments();
+      if (shouldRender || viewDirtyState['shipments']) {
+        renderShipments();
+        viewDirtyState['shipments'] = false;
+      }
       break;
     case 'customers':
       pageTitle.textContent = 'إدارة العملاء';
       pageSubtitle.textContent = 'تسجيل وإدارة العملاء بالوكالة ومراجعة سجلات شحنهم';
-      renderCustomers();
+      if (shouldRender || viewDirtyState['customers']) {
+        renderCustomers();
+        viewDirtyState['customers'] = false;
+      }
       break;
     case 'pricing':
       pageTitle.textContent = 'تعرفة الشحن للدول الأوروبية';
       pageSubtitle.textContent = 'تعديل وتحديد تسعيرة الشحن لكل بلد أوروبي بالدرهم';
-      renderPricingSettings();
+      if (shouldRender || viewDirtyState['pricing']) {
+        renderPricingSettings();
+        viewDirtyState['pricing'] = false;
+      }
       break;
     case 'reports':
       pageTitle.textContent = 'التقارير المالية والنشاط';
       pageSubtitle.textContent = 'استعراض تقارير الأرباح والشحنات وتصديرها PDF أو Excel';
-      generateReportData();
+      if (shouldRender || viewDirtyState['reports']) {
+        generateReportData();
+        viewDirtyState['reports'] = false;
+      }
       break;
     case 'settings':
       pageTitle.textContent = 'الإعدادات والنسخ الاحتياطي';
       pageSubtitle.textContent = 'أدوات الصيانة، النسخ الاحتياطي لقاعدة البيانات واستعادتها';
-      renderUsersSettings();
+      if (shouldRender || viewDirtyState['settings']) {
+        renderUsersSettings();
+        viewDirtyState['settings'] = false;
+      }
       break;
   }
 }
@@ -399,24 +471,43 @@ function refreshActiveView() {
   switch (currentView) {
     case 'dashboard':
       renderDashboard();
+      viewDirtyState['dashboard'] = false;
       break;
     case 'shipments':
       renderShipments();
+      viewDirtyState['shipments'] = false;
       break;
     case 'customers':
       renderCustomers();
+      viewDirtyState['customers'] = false;
       break;
     case 'pricing':
       renderPricingSettings();
+      viewDirtyState['pricing'] = false;
       break;
     case 'reports':
       generateReportData();
+      viewDirtyState['reports'] = false;
       break;
     case 'settings':
       renderUsersSettings();
+      viewDirtyState['settings'] = false;
       break;
   }
 }
+
+// Debounced view refresher that skips if user is typing
+const refreshActiveViewDebounced = debounce(() => {
+  const activeEl = document.activeElement;
+  const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+  if (isTyping) {
+    console.log("Skipping refreshActiveView: user is typing");
+    return;
+  }
+  console.log("Executing refreshActiveView (debounced)");
+  refreshActiveView();
+}, 500);
+
 
 // ==========================================================================
 // 2. DASHBOARD VIEW RENDER
@@ -505,12 +596,13 @@ function renderDashboard() {
   if (sortedShipments.length === 0) {
     recentTable.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">لا توجد شحنات مسجلة حالياً بالوكالة</td></tr>`;
   } else {
+    let recentHtml = '';
     sortedShipments.forEach(s => {
       const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
       const flag = countryObj ? countryObj.flag : '';
       const countryName = countryObj ? countryObj.country_name : s.destination_country;
 
-      recentTable.innerHTML += `
+      recentHtml += `
         <tr>
           <td style="font-family:'Estedad', sans-serif; font-weight:700; color:var(--primary-color);">${s.tracking_number}</td>
           <td><strong>${s.sender_name}</strong></td>
@@ -533,6 +625,7 @@ function renderDashboard() {
         </tr>
       `;
     });
+    recentTable.innerHTML = recentHtml;
   }
 
   // Country Breakdown Stats
@@ -558,9 +651,10 @@ function renderDashboard() {
   if (countryStats.length === 0) {
     countryBreakdown.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">لا توجد إحصائيات شحنات حالياً بالدول</div>`;
   } else {
+    let breakdownHtml = '';
     countryStats.slice(0, 5).forEach(stat => {
       const percentage = totalCount > 0 ? (stat.count / totalCount) * 100 : 0;
-      countryBreakdown.innerHTML += `
+      breakdownHtml += `
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div style="display:flex; justify-content:space-between; font-size:12px;">
             <span style="font-weight:700;">${stat.flag} ${stat.name}</span>
@@ -572,6 +666,7 @@ function renderDashboard() {
         </div>
       `;
     });
+    countryBreakdown.innerHTML = breakdownHtml;
   }
 }
 
@@ -584,10 +679,11 @@ function populateShipmentModalCountries() {
   if (!select) return;
   const countries = [...cachedCountryPrices].sort((a, b) => a.country_name.localeCompare(b.country_name, 'ar'));
   
-  select.innerHTML = '<option value="">-- اختر دولة الوجهة --</option>';
+  let html = '<option value="">-- اختر دولة الوجهة --</option>';
   countries.forEach(c => {
-    select.innerHTML += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
+    html += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
   });
+  select.innerHTML = html;
 }
 
 function populateShipmentsCountryFilter() {
@@ -595,17 +691,21 @@ function populateShipmentsCountryFilter() {
   if (!select) return;
   const countries = [...cachedCountryPrices].sort((a, b) => a.country_name.localeCompare(b.country_name, 'ar'));
   
-  select.innerHTML = '<option value="">كل دول أوروبا</option>';
+  let html = '<option value="">كل دول أوروبا</option>';
   countries.forEach(c => {
-    select.innerHTML += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
+    html += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
   });
+  select.innerHTML = html;
 }
 
 function renderShipments() {
   filterShipments();
 }
 
-function filterShipments() {
+function filterShipments(resetPagination = true) {
+  if (resetPagination) {
+    shipmentsLimit = 50;
+  }
   const searchQuery = document.getElementById('shipment-search').value.trim().toLowerCase();
   const countryFilter = document.getElementById('shipment-country-filter').value;
   const statusFilter = document.getElementById('shipment-status-filter').value;
@@ -634,12 +734,18 @@ function filterShipments() {
   const tableBody = document.getElementById('shipments-table-body');
   tableBody.innerHTML = '';
 
-  if (shipments.length === 0) {
+  const totalFilteredCount = shipments.length;
+  const displayedShipments = shipments.slice(0, shipmentsLimit);
+
+  if (displayedShipments.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-secondary);">لا توجد شحنات مطابقة لخيارات البحث المحددة</td></tr>`;
+    const pagContainer = document.getElementById('shipments-pagination');
+    if (pagContainer) pagContainer.style.display = 'none';
     return;
   }
 
-  shipments.forEach(s => {
+  let tableHtml = '';
+  displayedShipments.forEach(s => {
     const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
     const flag = countryObj ? countryObj.flag : '';
     const countryName = countryObj ? countryObj.country_name : s.destination_country;
@@ -657,7 +763,7 @@ function filterShipments() {
       ? `<button class="btn-icon delete" title="حذف الشحنة" onclick="deleteShipmentData('${s.tracking_number}')"><i class="fa-solid fa-trash-can"></i></button>`
       : '';
 
-    tableBody.innerHTML += `
+    tableHtml += `
       <tr>
         <td style="font-family:'Estedad', sans-serif; font-weight:900; color:var(--primary-color);">${s.tracking_number}</td>
         <td style="font-size:11px; color:var(--text-secondary);">${s.created_at.split('T')[0]}</td>
@@ -693,6 +799,28 @@ function filterShipments() {
       </tr>
     `;
   });
+  tableBody.innerHTML = tableHtml;
+
+  // Pagination UI
+  const paginationContainer = document.getElementById('shipments-pagination');
+  if (paginationContainer) {
+    if (totalFilteredCount > shipmentsLimit) {
+      paginationContainer.style.display = 'flex';
+      paginationContainer.innerHTML = `
+        <span class="pagination-info">يعرض ${displayedShipments.length} من أصل ${totalFilteredCount} شحنة</span>
+        <button class="btn-load-more" onclick="loadMoreShipments()">
+          <i class="fa-solid fa-spinner"></i> تحميل المزيد
+        </button>
+      `;
+    } else {
+      paginationContainer.style.display = 'none';
+    }
+  }
+}
+
+function loadMoreShipments() {
+  shipmentsLimit += 50;
+  filterShipments(false);
 }
 
 function openNewShipmentModal() {
@@ -745,11 +873,12 @@ function populateCustomersDropdown(selectId, selectedValue = '') {
   if (!select) return;
   const customers = [...cachedCustomers].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   
-  select.innerHTML = '<option value="">-- اختر عميلاً مرسلاً --</option>';
+  let html = '<option value="">-- اختر عميلاً مرسلاً --</option>';
   customers.forEach(c => {
     const selected = c.id === selectedValue ? 'selected' : '';
-    select.innerHTML += `<option value="${c.id}" ${selected}>${c.name} (${c.phone})</option>`;
+    html += `<option value="${c.id}" ${selected}>${c.name} (${c.phone})</option>`;
   });
+  select.innerHTML = html;
 }
 
 function autoFillSenderInfo() {
