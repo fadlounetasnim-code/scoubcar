@@ -68,7 +68,9 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(process.env.PORT || 3000, "0.0.0.0", () => {
+  console.log(`Server running on port ${process.env.PORT || 3000}`);
+});
   console.log(`\n======================================================`);
   console.log(`  International Parcel Agency Management Server`);
   console.log(`  Running locally at: http://localhost:${PORT}`);
