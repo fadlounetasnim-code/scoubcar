@@ -131,8 +131,16 @@ async function handleLogin() {
   const passwordInput = document.getElementById('login-password').value;
   const errorMsg = document.getElementById('login-error-msg');
 
-  // Authenticate using Supabase Auth
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const client = window.supabaseClient;
+
+  if (!client || !client.auth) {
+    errorMsg.textContent = "Supabase client غير متصل. تأكد من supabase-client.js";
+    errorMsg.style.display = 'block';
+    console.error("window.supabaseClient is missing:", window.supabaseClient);
+    return;
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
     email: emailInput,
     password: passwordInput
   });
@@ -140,15 +148,17 @@ async function handleLogin() {
   if (error) {
     errorMsg.textContent = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
     errorMsg.style.display = 'block';
+    console.error("Login error:", error);
   } else {
     errorMsg.style.display = 'none';
   }
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut();
+  if (window.supabaseClient) {
+    await window.supabaseClient.auth.signOut();
+  }
 }
-
 function applyRolePermissions() {
   const isEmployee = currentUserRole === 'Employee';
   
