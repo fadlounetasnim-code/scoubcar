@@ -3,7 +3,6 @@
 // Integrated with Supabase, Realtime Sync, and Role-Based Permissions
 // =========================================================================
 
-const supabase = window.supabaseClient;
 
 // Global Caches
 let cachedShipments = [];
