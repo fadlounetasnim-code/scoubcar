@@ -157,7 +157,7 @@ loadAllData()
   .catch((err) => {
     console.error("Data loading failed:", err);
   });
-      } catch (err) {
+      catch (err) {
   console.error("Failed to initialize user session:", err);
 
   loginOverlay.style.display = 'none';
