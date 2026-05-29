@@ -2390,6 +2390,11 @@
       return;
     }
 
+    if (passwordInput.length < 6) {
+      showToast('يجب أن تكون كلمة المرور مكونة من 6 أحرف على الأقل.', "error");
+      return;
+    }
+
     // Check locally first
     const existing = cachedUsers.find(u => u.email === email);
     if (existing) {
