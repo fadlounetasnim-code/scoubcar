@@ -1,0 +1,9 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.ayoub.shippingagency
+productName: International Shipping Agency
+win:
+  target: nsis
+files: []
+electronVersion: 31.7.7

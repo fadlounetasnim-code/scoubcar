@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام شحن أطلس | وكالة نقل الطرود المغرب - أوروبا</title>
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. LOGIN OVERLAY
+       ========================================================================== -->
+  <div id="login-overlay" class="login-screen">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          <i class="fa-solid fa-plane-departure"></i>
+        </div>
+        <h2 class="login-title">وكالة أطلس الدولي</h2>
+        <p class="login-subtitle">نظام إدارة الشحنات والطرود المغرب - أوروبا</p>
+      </div>
+      <div class="login-body">
+        <div id="login-error-msg" class="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+        <form id="login-form" class="login-form" onsubmit="event.preventDefault(); handleLogin();">
+          <div class="form-group">
+            <label class="form-label" for="login-username">البريد الإلكتروني (Email)</label>
+            <input type="email" id="login-username" class="form-control" placeholder="admin@atlas.com" required value="admin@atlas.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">كلمة المرور</label>
+            <input type="password" id="login-password" class="form-control" placeholder="أدخل كلمة المرور" required value="admin1234">
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+            <i class="fa-solid fa-lock-open"></i> تسجيل الدخول
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. MAIN APP SHELL
+       ========================================================================== -->
+  <div id="app-shell" class="app-container" style="display: none;">
+    
+    <!-- RIGHT SIDEBAR (RTL Arabic navigation) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+          <div class="user-info">
+            <span class="logo-text">أطلس إكسبريس</span>
+            <span class="logo-sub">الشحن الدولي السريع</span>
+          </div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li class="menu-item active" id="menu-dashboard">
+          <a href="#" onclick="switchView('dashboard')">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>لوحة التحكم</span>
+          </a>
+        </li>
+        <li class="menu-item" id="menu-shipments">
+          <a href="#" onclick="switchView('shipments')">
+            <i class="fa-solid fa-box-open"></i>
+            <span>الطرود والشحنات</span>
+          </a>
+        </li>
+        <li class="menu-item" id="menu-customers">
+          <a href="#" onclick="switchView('customers')">
+            <i class="fa-solid fa-users"></i>
+            <span>إدارة العملاء</span>
+          </a>
+        </li>
+        <li class="menu-item" id="menu-pricing">
+          <a href="#" onclick="switchView('pricing')">
+            <i class="fa-solid fa-tags"></i>
+            <span>تسعير الدول الأوروبية</span>
+          </a>
+        </li>
+        <li class="menu-item" id="menu-reports">
+          <a href="#" onclick="switchView('reports')">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>التقارير المالية</span>
+          </a>
+        </li>
+        <li class="menu-item" id="menu-settings">
+          <a href="#" onclick="switchView('settings')">
+            <i class="fa-solid fa-gears"></i>
+            <span>الإعدادات والنسخ الاحتياطي</span>
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar" id="header-avatar">M</div>
+          <div class="user-info">
+            <span class="user-name" id="header-username">مدير النظام</span>
+            <span class="user-role">مسؤول الوكالة</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> خروج
+        </button>
+      </div>
+    </aside>
+
+    <!-- LEFT CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- Top header bar -->
+      <header class="top-header">
+        <div class="page-title-container">
+          <h2 class="page-title" id="page-view-title">لوحة التحكم</h2>
+          <span class="page-subtitle" id="page-view-subtitle">نظرة عامة على نشاط وكالة الشحن الدولي اليوم</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" onclick="openNewCustomerModal()">
+            <i class="fa-solid fa-user-plus"></i> عميل جديد
+          </button>
+          <button class="btn-primary" onclick="openNewShipmentModal()">
+            <i class="fa-solid fa-circle-plus"></i> تسجيل طرد جديد
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable content panels -->
+      <div class="view-container">
+        
+        <!-- ==========================================
+             2.1 DASHBOARD VIEW
+             ========================================== -->
+        <section id="view-dashboard" class="view-panel active">
+          
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <span class="kpi-title">إجمالي الشحنات</span>
+                <span class="kpi-value" id="kpi-total-shipments">0</span>
+              </div>
+              <div class="kpi-icon kpi-all">
+                <i class="fa-solid fa-boxes-stacked"></i>
+              </div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <span class="kpi-title">شحنات قيد النقل</span>
+                <span class="kpi-value" id="kpi-transit-shipments">0</span>
+              </div>
+              <div class="kpi-icon kpi-transit">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+              </div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <span class="kpi-title">شحنات تم تسليمها</span>
+                <span class="kpi-value" id="kpi-delivered-shipments">0</span>
+              </div>
+              <div class="kpi-icon kpi-delivered">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <span class="kpi-title">شحنات ملغاة</span>
+                <span class="kpi-value" id="kpi-cancelled-shipments">0</span>
+              </div>
+              <div class="kpi-icon kpi-cancelled">
+                <i class="fa-solid fa-ban"></i>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <span class="kpi-title">أرباح الشهر الحالي</span>
+                <span class="kpi-value" id="kpi-monthly-profits">0 DH</span>
+              </div>
+              <div class="kpi-icon kpi-revenue">
+                <i class="fa-solid fa-wallet"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Charts & Grid split -->
+          <div class="dashboard-grid">
+            
+            <!-- Recent Shipments Table Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-clock-rotate-left"></i> آخر الشحنات المسجلة
+                </h3>
+                <button class="btn-secondary" onclick="switchView('shipments')" style="padding: 6px 12px; font-size: 11px;">
+                  عرض الكل <i class="fa-solid fa-arrow-left" style="margin-right: 6px; font-size: 9px;"></i>
+                </button>
+              </div>
+              <div class="card-body" style="padding: 0;">
+                <div class="table-responsive">
+                  <table class="custom-table">
+                    <thead>
+                      <tr>
+                        <th>رقم التتبع</th>
+                        <th>المرسل</th>
+                        <th>المستلم</th>
+                        <th>دولة الوجهة</th>
+                        <th>الوزن</th>
+                        <th>المبلغ (MAD)</th>
+                        <th>الحالة</th>
+                        <th>التحكم</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-recent-table-body">
+                      <!-- Rendered by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Country stats breakdown card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-globe"></i> إحصائيات الدول الأوروبية
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="pricing-list" id="dashboard-country-breakdown" style="gap: 16px;">
+                  <!-- Rendered by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Profits Summary Card -->
+            <div class="card" style="margin-top: 20px;">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-chart-line"></i> ملخص الأرباح والنشاط المالي (MAD)
+                </h3>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:14px; font-size:13px;">
+                
+                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-calendar-day" style="color:var(--primary-color); font-size:14px;"></i>
+                    <span>أرباح اليوم الحالي:</span>
+                  </div>
+                  <span id="profit-today" style="font-family:'Estedad', sans-serif; font-weight:800; color:var(--text-dark);">0.00 DH</span>
+                </div>
+                
+                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-calendar-week" style="color:var(--color-info); font-size:14px;"></i>
+                    <span>أرباح الأسبوع الحالي:</span>
+                  </div>
+                  <span id="profit-weekly" style="font-family:'Estedad', sans-serif; font-weight:800; color:var(--text-dark);">0.00 DH</span>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-calendar-minus" style="color:var(--color-warning); font-size:14px;"></i>
+                    <span>أرباح الشهر الحالي:</span>
+                  </div>
+                  <span id="profit-monthly" style="font-family:'Estedad', sans-serif; font-weight:800; color:var(--text-dark);">0.00 DH</span>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:4px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-calendar-days" style="color:var(--color-success); font-size:14px;"></i>
+                    <span>أرباح السنة الحالية:</span>
+                  </div>
+                  <span id="profit-yearly" style="font-family:'Estedad', sans-serif; font-weight:800; color:var(--color-success); font-size:15px;">0.00 DH</span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==========================================
+             2.2 SHIPMENTS VIEW
+             ========================================== -->
+        <section id="view-shipments" class="view-panel">
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="shipment-search" class="search-input" placeholder="البحث برقم التتبع، اسم المرسل أو المستلم..." oninput="filterShipments()">
+            </div>
+            
+            <select id="shipment-country-filter" class="select-filter" onchange="filterShipments()">
+              <option value="">كل دول أوروبا</option>
+              <!-- Populated by JS -->
+            </select>
+            
+            <select id="shipment-status-filter" class="select-filter" onchange="filterShipments()">
+              <option value="">جميع الحالات</option>
+              <option value="received">قيد الاستلام</option>
+              <option value="processing">قيد المعالجة</option>
+              <option value="transit">في الطريق</option>
+              <option value="arrived">وصلت بلد الوجهة</option>
+              <option value="delivered">تم التسليم</option>
+              <option value="cancelled">ملغاة</option>
+            </select>
+          </div>
+
+          <!-- Shipments List Card -->
+          <div class="card">
+            <div class="card-body" style="padding: 0;">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>رقم التتبع</th>
+                      <th>تاريخ التسجيل</th>
+                      <th>المرسل</th>
+                      <th>المستلم</th>
+                      <th>دولة الوجهة / العنوان</th>
+                      <th>عدد الطرود / الوزن</th>
+                      <th>السعر بالدرهم</th>
+                      <th>الحالة</th>
+                      <th>إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shipments-table-body">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             2.3 CUSTOMERS VIEW
+             ========================================== -->
+        <section id="view-customers" class="view-panel">
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="customer-search" class="search-input" placeholder="البحث باسم العميل، رقم الهاتف أو رقم البطاقة الوطنية..." oninput="filterCustomers()">
+            </div>
+          </div>
+
+          <!-- Customers Card -->
+          <div class="card">
+            <div class="card-body" style="padding: 0;">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>رقم العميل</th>
+                      <th>الاسم الكامل</th>
+                      <th>رقم الهاتف</th>
+                      <th>البريد الإلكتروني</th>
+                      <th>العنوان بالمغرب</th>
+                      <th>رقم الهوية الوطنية / جواز السفر</th>
+                      <th>تاريخ الإضافة</th>
+                      <th>عدد الشحنات</th>
+                      <th>التحكم</th>
+                    </tr>
+                  </thead>
+                  <tbody id="customers-table-body">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             2.4 PRICING SETTINGS VIEW
+             ========================================== -->
+        <section id="view-pricing" class="view-panel">
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="pricing-search" class="search-input" placeholder="البحث عن دولة أوروبية لتعديل الأسعار..." oninput="filterPricingList()">
+            </div>
+            <span style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">
+              <i class="fa-solid fa-circle-info" style="color: var(--primary-color);"></i> قم بتخصيص السعر الأساسي وسعر الكيلوغرام الإضافي لكل دولة أوروبية.
+            </span>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-plane-departure"></i> أسعار الشحن من المغرب نحو أوروبا (بالدرهم المغربي DH)</h3>
+            </div>
+            <div class="card-body">
+              <div class="pricing-list" id="country-pricing-list-container">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             2.5 REPORTS VIEW
+             ========================================== -->
+        <section id="view-reports" class="view-panel">
+          <!-- Filters & Date Selector -->
+          <div class="filter-bar" style="flex-wrap: wrap;">
+            <div class="form-group" style="min-width: 150px;">
+              <label class="form-label">نوع التقرير</label>
+              <select id="report-type" class="select-filter" style="min-width: 100%;" onchange="updateReportDateInputs()">
+                <option value="daily">تقرير يومي</option>
+                <option value="monthly">تقرير شهري</option>
+                <option value="yearly">تقرير سنوي</option>
+              </select>
+            </div>
+            
+            <div class="form-group" id="report-date-container" style="min-width: 150px;">
+              <label class="form-label" id="report-date-label">اختر اليوم</label>
+              <input type="date" id="report-date-input" class="form-control" style="padding: 10px; width:100%;" onchange="generateReportData()">
+            </div>
+
+            <div class="form-group" id="report-month-container" style="min-width: 150px; display:none;">
+              <label class="form-label">اختر الشهر</label>
+              <input type="month" id="report-month-input" class="form-control" style="padding: 10px; width:100%;" onchange="generateReportData()">
+            </div>
+
+            <div class="form-group" id="report-year-container" style="min-width: 150px; display:none;">
+              <label class="form-label">اختر السنة</label>
+              <select id="report-year-input" class="select-filter" style="min-width: 100%;" onchange="generateReportData()">
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+
+            <div style="flex-grow: 1;"></div>
+            
+            <div style="display:flex; gap:12px; margin-top:20px;">
+              <button class="btn-secondary" onclick="exportReportToCSV()">
+                <i class="fa-solid fa-file-excel" style="color: #1f7246;"></i> تصدير التقرير لـ Excel
+              </button>
+              <button class="btn-primary" onclick="printReport()">
+                <i class="fa-solid fa-print"></i> طباعة التقرير PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Financial summary row -->
+          <div class="kpi-grid" id="report-summary-cards">
+            <!-- Populated dynamically by JS -->
+          </div>
+
+          <!-- Shipments matching report -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-receipt"></i> الشحنات المدرجة بالتقرير</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="table-responsive">
+                <table class="custom-table" id="report-table">
+                  <thead>
+                    <tr>
+                      <th>رقم التتبع</th>
+                      <th>تاريخ الشحن</th>
+                      <th>المرسل</th>
+                      <th>المستلم</th>
+                      <th>الوجهة</th>
+                      <th>الوزن (كجم)</th>
+                      <th>سعر الشحن</th>
+                      <th>حالة الشحنة</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-table-body">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             2.6 BACKUP & SETTINGS VIEW
+             ========================================== -->
+        <section id="view-settings" class="view-panel">
+          <div class="dashboard-grid">
+            
+            <!-- Backup management card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-shield-halved"></i> النسخ الاحتياطي واستعادة البيانات</h3>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:20px;">
+                <p style="font-size: 13px; line-height: 1.6; color:#555;">
+                  لحماية بيانات الوكالة، يُنصح بشدة بعمل نسخ احتياطي دوري لقاعدة البيانات المحلية. يتم حفظ ملفات النسخ الاحتياطي محلياً على جهازك بصيغة مشفرة/منظمة ويمكن استرجاعها بالكامل في أي وقت.
+                </p>
+                
+                <div style="display:flex; gap:16px;">
+                  <button class="btn-primary" onclick="triggerDatabaseBackup()" style="flex:1; justify-content:center;">
+                    <i class="fa-solid fa-download"></i> تصدير نسخة احتياطية (JSON)
+                  </button>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border-light);">
+                
+                <div class="form-group">
+                  <label class="form-label" style="color: var(--color-danger); font-weight:800;">استرجاع قاعدة البيانات من ملف نسخ احتياطي</label>
+                  <p style="font-size: 11px; color: var(--text-secondary); margin-bottom:8px;">
+                    تحذير: استعادة نسخة احتياطية سيؤدي إلى استبدال جميع البيانات الحالية بقاعدة البيانات المحلية.
+                  </p>
+                  <input type="file" id="backup-file-input" class="form-control" accept=".json" style="padding:10px;">
+                  <button class="btn-secondary" onclick="triggerDatabaseRestore()" style="margin-top:10px; justify-content:center; color: var(--color-danger); border-color:#ffa4a4; background-color:#ffebee;">
+                    <i class="fa-solid fa-upload"></i> تحميل واستعادة البيانات الآن
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- System details & Configuration card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-gears"></i> إعدادات وتفاصيل النظام</h3>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:16px; font-size:13px;">
+                <!-- System Name Change Form -->
+                <form onsubmit="event.preventDefault(); saveSystemNameSetting();" style="display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--border-light); padding-bottom:16px; margin-bottom:8px;">
+                  <label class="form-label" for="settings-system-name">اسم النظام بالترويسة وواجهة الوكالة</label>
+                  <div style="display:flex; gap:10px;">
+                    <input type="text" id="settings-system-name" class="form-control" style="flex-grow:1; padding:10px;" required>
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">
+                      <i class="fa-solid fa-floppy-disk"></i> حفظ
+                    </button>
+                  </div>
+                </form>
+
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <span style="color:var(--text-secondary);">الإصدار الحالي:</span>
+                  <span style="font-weight:700;">2.2.0 Multi-User Ready</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <span style="color:var(--text-secondary);">قاعدة البيانات الحالية:</span>
+                  <span style="font-weight:700; color:var(--primary-color);">Realm Database (Local Emulated)</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px;">
+                  <span style="color:var(--text-secondary);">العملة المعتمدة:</span>
+                  <span style="font-weight:700;">الدرهم المغربي DH / MAD</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-bottom:8px;">
+                  <span style="color:var(--text-secondary);">نطاق العمل:</span>
+                  <span style="font-weight:700;">من المغرب نحو جميع دول أوروبا</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- User Management Card -->
+          <div class="card" style="grid-column: 1 / -1; margin-top: 30px;">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-users-gear"></i> إدارة مستخدمي النظام وصلاحياتهم</h3>
+            </div>
+            <div class="card-body">
+              <div style="display:grid; grid-template-columns: 1fr 2fr; gap:30px;">
+                <!-- Add User Form -->
+                <form id="add-user-form" onsubmit="event.preventDefault(); handleAddUser();" style="display:flex; flex-direction:column; gap:16px; background-color: var(--light-bg); padding:20px; border-radius:12px; border:1px solid var(--border-light);">
+                  <h4 style="font-size:13px; font-weight:800; border-bottom:1px solid #ddd; padding-bottom:8px; color:var(--primary-color);">إضافة مستخدم جديد</h4>
+                  <div class="form-group">
+                    <label class="form-label" for="new-user-username">اسم المستخدم *</label>
+                    <input type="text" id="new-user-username" class="form-control" placeholder="مثال: ahmed_cargo" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="new-user-fullname">الاسم الكامل *</label>
+                    <input type="text" id="new-user-fullname" class="form-control" placeholder="مثال: أحمد علوي" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="new-user-password">كلمة المرور *</label>
+                    <input type="password" id="new-user-password" class="form-control" placeholder="أدخل كلمة مرور قوية" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="new-user-role">الصلاحيات / الدور *</label>
+                    <select id="new-user-role" class="select-filter" style="min-width:100%;" required>
+                      <option value="staff">موظف وكالة (Staff)</option>
+                      <option value="administrator">مدير كامل الصلاحيات (Admin)</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn-primary" style="justify-content:center; width:100%;">
+                    <i class="fa-solid fa-user-plus"></i> إضافة المستخدم للنظام
+                  </button>
+                </form>
+
+                <!-- Users List Table -->
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <h4 style="font-size:13px; font-weight:800;">قائمة المستخدمين الحاليين بالوكالة</h4>
+                  <div class="table-responsive" style="border:1px solid var(--border-light); border-radius:12px; overflow:hidden; background-color:#fff;">
+                    <table class="custom-table">
+                      <thead>
+                        <tr>
+                          <th>الاسم الكامل</th>
+                          <th>اسم المستخدم</th>
+                          <th>الصلاحيات</th>
+                          <th>تاريخ الإضافة</th>
+                          <th>التحكم</th>
+                        </tr>
+                      </thead>
+                      <tbody id="users-settings-table-body">
+                        <!-- Loaded dynamically by JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       3. MODAL SHEET DIALOGS (HTML5 Native dialog tags)
+       ========================================================================== -->
+       
+  <!-- 3.1 CUSTOMER MODAL (Add / Edit Customer) -->
+  <dialog id="customer-modal">
+    <div class="dialog-header">
+      <h3 class="dialog-title" id="customer-modal-title">إضافة عميل جديد</h3>
+      <button class="btn-icon" onclick="document.getElementById('customer-modal').close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form id="customer-form" onsubmit="event.preventDefault(); saveCustomerData();">
+      <div class="dialog-body">
+        <input type="hidden" id="customer-edit-id">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label class="form-label" for="customer-name">الاسم الكامل للعميل *</label>
+            <input type="text" id="customer-name" class="form-control" placeholder="أدخل الاسم الأول والعائلي" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="customer-phone">رقم الهاتف بالمغرب *</label>
+            <input type="tel" id="customer-phone" class="form-control" placeholder="مثال: 0612345678" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="customer-email">البريد الإلكتروني (اختياري)</label>
+            <input type="email" id="customer-email" class="form-control" placeholder="customer@mail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="customer-morocco-id">رقم البطاقة الوطنية CIN / جواز السفر *</label>
+            <input type="text" id="customer-morocco-id" class="form-control" placeholder="مثال: AB123456" required>
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label" for="customer-address">العنوان الكامل بالمغرب</label>
+            <textarea id="customer-address" class="form-control" rows="3" placeholder="الشارع، رقم المنزل، المدينة بالمغرب"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('customer-modal').close()">إلغاء</button>
+        <button type="submit" class="btn-primary">حفظ العميل</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 3.2 SHIPMENT MODAL (Add / Edit Shipment) -->
+  <dialog id="shipment-modal" style="max-width:750px;">
+    <div class="dialog-header">
+      <h3 class="dialog-title" id="shipment-modal-title">تسجيل طرد شحن جديد</h3>
+      <button class="btn-icon" onclick="document.getElementById('shipment-modal').close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form id="shipment-form" onsubmit="event.preventDefault(); saveShipmentData();">
+      <div class="dialog-body">
+        <input type="hidden" id="shipment-edit-id">
+        <div class="form-grid">
+          
+          <!-- Tracking Number Display -->
+          <div class="form-group full-width" style="background-color: var(--light-bg); padding:12px; border-radius:12px; display:flex; flex-direction:row; justify-content:space-between; align-items:center;">
+            <span style="font-weight:800; font-size:13px; color: var(--primary-color);">رقم تتبع الشحنة التلقائي:</span>
+            <span id="shipment-tracking-display" style="font-family:'Estedad', sans-serif; font-size:18px; font-weight:900; color:var(--text-dark); background-color:#fff; padding:4px 16px; border-radius:8px; border:1px solid #ccc; letter-spacing:1px;">MA-EU-XXXXXX</span>
+          </div>
+
+          <!-- Section: Client Selection / Sender -->
+          <div class="form-group full-width" style="margin-top:10px;">
+            <h4 style="font-size:13px; border-bottom:1px solid var(--border-light); padding-bottom:4px; color:var(--primary-color);">بيانات المرسل (المغرب)</h4>
+          </div>
+          
+          <div class="form-group full-width">
+            <label class="form-label" for="shipment-sender-select">اختر العميل المسجل بالوكالة *</label>
+            <select id="shipment-sender-select" class="select-filter" style="min-width: 100%;" onchange="autoFillSenderInfo()" required>
+              <option value="">-- اختر عميلاً مرسلاً --</option>
+              <!-- Loaded dynamically by JS -->
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="shipment-sender-name">اسم المرسل الكامل *</label>
+            <input type="text" id="shipment-sender-name" class="form-control" required disabled>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-sender-phone">رقم هاتف المرسل *</label>
+            <input type="tel" id="shipment-sender-phone" class="form-control" required disabled>
+          </div>
+
+          <!-- Section: Receiver Details -->
+          <div class="form-group full-width" style="margin-top:10px;">
+            <h4 style="font-size:13px; border-bottom:1px solid var(--border-light); padding-bottom:4px; color:var(--primary-color);">بيانات المستلم (أوروبا)</h4>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-receiver-name">اسم المستلم الكامل *</label>
+            <input type="text" id="shipment-receiver-name" class="form-control" placeholder="أدخل اسم المستلم بالكامل" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-receiver-phone">رقم هاتف المستلم الدولي *</label>
+            <input type="tel" id="shipment-receiver-phone" class="form-control" placeholder="مثال: 33612345678+" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-country">دولة الوجهة الأوروبية *</label>
+            <select id="shipment-country" class="select-filter" style="min-width: 100%;" onchange="calculateShippingPrice()" required>
+              <option value="">-- اختر دولة الوجهة --</option>
+              <!-- Loaded dynamically by JS -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-city">المدينة بأوروبا *</label>
+            <input type="text" id="shipment-city" class="form-control" placeholder="مثال: باريس، مدريد..." required>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="shipment-address">العنوان الكامل بأوروبا *</label>
+            <input type="text" id="shipment-address" class="form-control" placeholder="اسم الشارع، الرمز البريدي، والحي" required>
+          </div>
+
+          <!-- Section: Parcel Metrics & Price -->
+          <div class="form-group full-width" style="margin-top:10px;">
+            <h4 style="font-size:13px; border-bottom:1px solid var(--border-light); padding-bottom:4px; color:var(--primary-color);">بيانات الطرد والتعرفة</h4>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-quantity">عدد الطرود *</label>
+            <input type="number" id="shipment-quantity" class="form-control" value="1" min="1" oninput="calculateShippingPrice()" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-weight">الوزن الإجمالي (كيلوغرام) *</label>
+            <input type="number" id="shipment-weight" class="form-control" step="0.1" value="1.0" min="0.1" oninput="calculateShippingPrice()" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-price">سعر الشحن بالدرهم المغربي *</label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="number" id="shipment-price" class="form-control" style="flex-grow:1; font-family:'Estedad', sans-serif; font-size:16px; font-weight:700; color:var(--primary-color);" required>
+              <span style="font-weight:800; font-size:13px;">MAD</span>
+            </div>
+            <span style="font-size:11px; color:var(--text-secondary);" id="price-calc-hint">الحد الأدنى للتسعير لهذه الدولة</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shipment-status">حالة الشحنة البدئية *</label>
+            <select id="shipment-status" class="select-filter" style="min-width: 100%;" required>
+              <option value="received">قيد الاستلام</option>
+              <option value="processing">قيد المعالجة</option>
+              <option value="transit">في الطريق</option>
+              <option value="arrived">وصلت بلد الوجهة</option>
+              <option value="delivered">تم التسليم</option>
+              <option value="cancelled">ملغاة</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="shipment-notes">ملاحظات إضافية</label>
+            <textarea id="shipment-notes" class="form-control" rows="2" placeholder="محتويات الطرد، شروط خاصة، الخ..."></textarea>
+          </div>
+
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('shipment-modal').close()">إلغاء</button>
+        <button type="submit" class="btn-primary">تسجيل وحفظ الشحنة</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 3.3 CLIENT HISTORY MODAL -->
+  <dialog id="history-modal" style="max-width:750px;">
+    <div class="dialog-header">
+      <h3 class="dialog-title" id="history-modal-title">سجل شحنات العميل</h3>
+      <button class="btn-icon" onclick="document.getElementById('history-modal').close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dialog-body" style="padding:0;">
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>رقم التتبع</th>
+              <th>تاريخ الشحن</th>
+              <th>المستلم</th>
+              <th>الوجهة</th>
+              <th>الوزن</th>
+              <th>السعر</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-secondary" onclick="document.getElementById('history-modal').close()">إغلاق</button>
+    </div>
+  </dialog>
+
+  <!-- 3.4 STATUS CHANGE MODAL -->
+  <dialog id="status-modal">
+    <div class="dialog-header">
+      <h3 class="dialog-title">تحديث حالة الشحنة</h3>
+      <button class="btn-icon" onclick="document.getElementById('status-modal').close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form onsubmit="event.preventDefault(); saveStatusUpdate();">
+      <div class="dialog-body">
+        <input type="hidden" id="status-update-tracking">
+        <div class="form-grid" style="grid-template-columns: 1fr;">
+          <div class="form-group">
+            <label class="form-label">الحالة الجديدة *</label>
+            <select id="status-update-select" class="select-filter" style="min-width: 100%;" required>
+              <option value="received">قيد الاستلام</option>
+              <option value="processing">قيد المعالجة</option>
+              <option value="transit">في الطريق</option>
+              <option value="arrived">وصلت بلد الوجهة</option>
+              <option value="delivered">تم التسليم</option>
+              <option value="cancelled">ملغاة</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="status-update-note">تفاصيل وتحديث الموقع (اختياري)</label>
+            <input type="text" id="status-update-note" class="form-control" placeholder="مثال: الشحنة غادرت ميناء طنجة المتوسط">
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('status-modal').close()">إلغاء</button>
+        <button type="submit" class="btn-primary">تحديث الحالة</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 3.5 INVOICE / RECEIPT SHEET -->
+  <dialog id="invoice-modal" style="max-width:850px; background-color:#f5f5f7;">
+    <div class="dialog-header">
+      <h3 class="dialog-title">معاينة وصل الفاتورة للعميل</h3>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-primary" onclick="window.print()">
+          <i class="fa-solid fa-print"></i> طباعة الوصل / PDF
+        </button>
+        <button class="btn-icon" onclick="document.getElementById('invoice-modal').close()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="dialog-body" style="padding: 20px 0;">
+      <div id="invoice-print-area" class="invoice-container">
+        <!-- Rendered dynamically by JS -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ==========================================================================
+       4. SCRIPTS LOADING
+       ========================================================================== -->
+  <!-- Supabase SDK CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Supabase Browser Client Init -->
+  <script src="supabase-client.js"></script>
+  
+  <!-- Business logic and interface interaction -->
+  <script src="app.js"></script>
+
+</body>
+</html>
