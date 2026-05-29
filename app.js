@@ -104,10 +104,6 @@ function generateCustomerID() {
 
 
 async function handleLogin() {
-  // code
-}
-
-window.handleLogin = handleLogin;
   const emailInput = document.getElementById('login-username').value.trim();
   const passwordInput = document.getElementById('login-password').value;
   const errorMsg = document.getElementById('login-error-msg');
@@ -115,13 +111,12 @@ window.handleLogin = handleLogin;
   const client = window.supabaseClient;
 
   if (!client || !client.auth) {
-    errorMsg.textContent = "Supabase client غير متصل. تأكد من supabase-client.js";
+    errorMsg.textContent = "Supabase client غير متصل";
     errorMsg.style.display = 'block';
-    console.error("window.supabaseClient is missing:", window.supabaseClient);
     return;
   }
 
-  const { data, error } = await client.auth.signInWithPassword({
+  const { error } = await client.auth.signInWithPassword({
     email: emailInput,
     password: passwordInput
   });
@@ -129,21 +124,22 @@ window.handleLogin = handleLogin;
   if (error) {
     errorMsg.textContent = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
     errorMsg.style.display = 'block';
-    console.error("Login error:", error);
   } else {
     errorMsg.style.display = 'none';
   }
 }
 
-async function handleLogout() {
-  // code
-}
+window.handleLogin = handleLogin;
 
-window.handleLogout = handleLogout;
+async function handleLogout() {
   if (window.supabaseClient) {
     await window.supabaseClient.auth.signOut();
   }
 }
+
+window.handleLogout = handleLogout;
+
+
 function applyRolePermissions() {
   const isEmployee = currentUserRole === 'Employee';
   
