@@ -19,15 +19,14 @@ const MIME_TYPES = {
 const server = http.createServer((req, res) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
-  // Normalize URL path
   let filePath = '.' + req.url.split('?')[0];
+
   if (filePath === './') {
     filePath = './index.html';
   }
 
   const absolutePath = path.resolve(filePath);
 
-  // Prevent directory traversal attacks
   if (!absolutePath.startsWith(path.resolve('.'))) {
     res.statusCode = 403;
     res.end('Access Denied');
@@ -36,7 +35,6 @@ const server = http.createServer((req, res) => {
 
   fs.stat(absolutePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      // If file not found, try to redirect to index.html for SPA fallback
       fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
         if (err) {
           res.statusCode = 404;
@@ -61,6 +59,7 @@ const server = http.createServer((req, res) => {
         res.end('Internal Server Error');
         return;
       }
+
       res.statusCode = 200;
       res.setHeader('Content-Type', contentType);
       res.end(data);
@@ -68,11 +67,9 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(process.env.PORT || 3000, "0.0.0.0", () => {
-  console.log(`Server running on port ${process.env.PORT || 3000}`);
-});
-  console.log(`\n======================================================`);
-  console.log(`  International Parcel Agency Management Server`);
-  console.log(`  Running locally at: http://localhost:${PORT}`);
-  console.log(`======================================================\n`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('\n======================================================');
+  console.log('  International Parcel Agency Management Server');
+  console.log(`  Running on port: ${PORT}`);
+  console.log('======================================================\n');
 });
