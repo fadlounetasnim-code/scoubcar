@@ -104,6 +104,10 @@ function generateCustomerID() {
 
 
 async function handleLogin() {
+  // code
+}
+
+window.handleLogin = handleLogin;
   const emailInput = document.getElementById('login-username').value.trim();
   const passwordInput = document.getElementById('login-password').value;
   const errorMsg = document.getElementById('login-error-msg');
@@ -132,6 +136,10 @@ async function handleLogin() {
 }
 
 async function handleLogout() {
+  // code
+}
+
+window.handleLogout = handleLogout;
   if (window.supabaseClient) {
     await window.supabaseClient.auth.signOut();
   }
