@@ -158,8 +158,13 @@ loadAllData()
     console.error("Data loading failed:", err);
   });
       } catch (err) {
-        console.error("Failed to initialize user session:", err);
-      }
+  console.error("Failed to initialize user session:", err);
+
+  loginOverlay.style.display = 'none';
+  appShell.style.display = 'flex';
+
+  initApp();
+}
     } else {
       currentUser = null;
       currentUserRole = null;
