@@ -16,7 +16,6 @@ const supabaseClient = window.supabase.createClient(
   }
 );
 
-window.supabase = supabaseClient;
 window.supabaseClient = supabaseClient;
 window.supabaseUrl = supabaseUrl;
 window.supabaseKey = supabaseKey;

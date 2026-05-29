@@ -1213,3 +1213,191 @@ dialog::backdrop {
   font-weight: 700;
 }
 
+/* ==========================================================================
+   DASHBOARD CHARTS ROW
+   ========================================================================== */
+.dashboard-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  min-height: 320px;
+}
+
+.chart-body {
+  padding: 15px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 250px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   MOBILE COLLAPSIBLE SIDEBAR
+   ========================================================================== */
+.sidebar-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-dark);
+  padding: 8px;
+  margin-left: 12px;
+  border-radius: 8px;
+  transition: var(--transition-quick);
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: var(--light-bg);
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    display: block;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: -260px; /* Off-screen right since RTL navigation layout */
+    height: 100%;
+    width: 260px;
+    z-index: 2000; /* overlay above everything */
+    transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  
+  .sidebar.sidebar-open {
+    right: 0;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
+  }
+  
+  /* Mobile Backdrop Overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(3px);
+    z-index: 1999;
+    display: none;
+  }
+  
+  .sidebar-overlay.active {
+    display: block;
+  }
+}
+
+/* ==========================================================================
+   MOBILE STACKING & RESPONSIVENESS FIXES
+   ========================================================================== */
+@media (max-width: 550px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.custom-table {
+  min-width: 800px;
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10000;
+}
+
+.toast {
+  background-color: var(--content-bg);
+  border-right: 4px solid var(--primary-color);
+  box-shadow: var(--shadow-lg);
+  padding: 12px 20px;
+  border-radius: var(--border-radius-md);
+  color: var(--text-dark);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideInLeft 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  min-width: 250px;
+}
+
+.toast.success {
+  border-right-color: var(--color-success);
+}
+
+.toast.error {
+  border-right-color: var(--color-danger);
+}
+
+.toast.info {
+  border-right-color: var(--color-info);
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.fade-out {
+  animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(10px); }
+}
+
+/* ==========================================================================
+   SKELETONS LOADERS
+   ========================================================================== */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading-skeleton 1.5s infinite;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  margin: 4px 0;
+}
+
+.skeleton-title {
+  height: 18px;
+  width: 60%;
+  margin-bottom: 8px;
+}
+
+@keyframes loading-skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+
