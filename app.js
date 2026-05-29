@@ -141,17 +141,22 @@ document.addEventListener('DOMContentLoaded', () => {
         applyRolePermissions();
         
         // Load initial data
-        await loadAllData();
-        
-        // Set up Realtime Sync
-        setupRealtime();
-        
-        // Show app shell
-        loginOverlay.style.display = 'none';
-        appShell.style.display = 'flex';
-        
-        // Initialize App Pages
-        initApp();
+      // Show app immediately
+loginOverlay.style.display = 'none';
+appShell.style.display = 'flex';
+
+// Initialize App Pages
+initApp();
+
+// Load data in background
+loadAllData()
+  .then(() => {
+    setupRealtime();
+    console.log("Data loaded successfully");
+  })
+  .catch((err) => {
+    console.error("Data loading failed:", err);
+  });
       } catch (err) {
         console.error("Failed to initialize user session:", err);
       }
