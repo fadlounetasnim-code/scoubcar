@@ -101,78 +101,58 @@ function generateCustomerID() {
 // 1. APPLICATION INITIALIZATION & CORE AUTHENTICATION TRIGGERS
 // ==========================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Listen to Supabase Auth State Changes
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log("Auth event:", event, "Session present:", !!session);
-    
-    const loginOverlay = document.getElementById('login-overlay');
-    const appShell = document.getElementById('app-shell');
-    const errorMsg = document.getElementById('login-error-msg');
-    
-    if (session) {
-      try {
-        // Fetch public profile to get user details & role
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (error || !profile) {
-          console.warn("User profile not found in public.users, using metadata fallback:", error);
-          currentUser = {
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || 'مستخدم جديد',
-            role: session.user.user_metadata?.role || 'Employee'
-          };
-        } else {
-          currentUser = profile;
-        }
-        
-        currentUserRole = currentUser.role;
-        
-        // Render UI Profile
-        document.getElementById('header-username').textContent = currentUser.name;
-        document.getElementById('header-avatar').textContent = currentUser.name.charAt(0);
-        
-        // Set permissions
-        applyRolePermissions();
-        
-        // Load initial data
-      // Show app immediately
-loginOverlay.style.display = 'none';
-appShell.style.display = 'flex';
+if (session) {
+  try {
+    // Fetch public profile
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
 
-// Initialize App Pages
-initApp();
-
-// Load data in background
-loadAllData()
-  .then(() => {
-    setupRealtime();
-    console.log("Data loaded successfully");
-  })
-  .catch((err) => {
-    console.error("Data loading failed:", err);
-  });
-      catch (err) {
-  console.error("Failed to initialize user session:", err);
-
-  loginOverlay.style.display = 'none';
-  appShell.style.display = 'flex';
-
-  initApp();
-}
+    if (error || !profile) {
+      currentUser = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.user_metadata?.name || 'مستخدم جديد',
+        role: session.user.user_metadata?.role || 'Employee'
+      };
     } else {
-      currentUser = null;
-      currentUserRole = null;
-      loginOverlay.style.display = 'flex';
-      appShell.style.display = 'none';
+      currentUser = profile;
     }
-  });
-});
+
+    currentUserRole = currentUser.role;
+
+    document.getElementById('header-username').textContent = currentUser.name;
+    document.getElementById('header-avatar').textContent = currentUser.name.charAt(0);
+
+    applyRolePermissions();
+
+    // Show app immediately
+    loginOverlay.style.display = 'none';
+    appShell.style.display = 'flex';
+
+    initApp();
+
+    // Load data in background
+    loadAllData()
+      .then(() => {
+        setupRealtime();
+        console.log("Data loaded successfully");
+      })
+      .catch((err) => {
+        console.error("Data loading failed:", err);
+      });
+
+  } catch (err) {
+    console.error("Failed to initialize user session:", err);
+
+    loginOverlay.style.display = 'none';
+    appShell.style.display = 'flex';
+
+    initApp();
+  }
+}
 
 async function handleLogin() {
   const emailInput = document.getElementById('login-username').value.trim();
