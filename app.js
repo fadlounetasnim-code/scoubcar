@@ -951,7 +951,7 @@
       activeCountries.forEach((c, idx) => {
         const count = shipments.filter(s => s.destination_country === c.country_code).length;
         if (count > 0) {
-          countryLabels.push(`${c.flag} ${c.country_name}`);
+          countryLabels.push(`${c.flag} ${getCountryName(c)}`);
           countryCounts.push(count);
           countryColors.push(baseColors[idx % baseColors.length]);
         }
@@ -1117,11 +1117,12 @@
   function populateShipmentModalCountries() {
     const select = document.getElementById('shipment-country');
     if (!select) return;
-    const countries = [...cachedCountryPrices].sort((a, b) => a.country_name.localeCompare(b.country_name, 'ar'));
+    const sortLang = currentLang === 'ar' ? 'ar' : 'fr';
+    const countries = [...cachedCountryPrices].sort((a, b) => getCountryName(a).localeCompare(getCountryName(b), sortLang));
     
-    let html = '<option value="">-- اختر دولة الوجهة --</option>';
+    let html = `<option value="">${t('select_destination_country')}</option>`;
     countries.forEach(c => {
-      html += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
+      html += `<option value="${c.country_code}">${c.flag} ${getCountryName(c)}</option>`;
     });
     select.innerHTML = html;
   }
@@ -1129,11 +1130,12 @@
   function populateShipmentsCountryFilter() {
     const select = document.getElementById('shipment-country-filter');
     if (!select) return;
-    const countries = [...cachedCountryPrices].sort((a, b) => a.country_name.localeCompare(b.country_name, 'ar'));
+    const sortLang = currentLang === 'ar' ? 'ar' : 'fr';
+    const countries = [...cachedCountryPrices].sort((a, b) => getCountryName(a).localeCompare(getCountryName(b), sortLang));
     
-    let html = '<option value="">كل دول أوروبا</option>';
+    let html = `<option value="">${t('filter_all_countries')}</option>`;
     countries.forEach(c => {
-      html += `<option value="${c.country_code}">${c.flag} ${c.country_name}</option>`;
+      html += `<option value="${c.country_code}">${c.flag} ${getCountryName(c)}</option>`;
     });
     select.innerHTML = html;
   }
@@ -1915,19 +1917,19 @@
             <div class="country-details">
               <span style="font-size:24px;">${c.flag}</span>
               <div>
-                <div style="font-weight:800; font-size:14px;">${c.country_name}</div>
+                <div style="font-weight:800; font-size:14px;">${getCountryName(c)}</div>
                 <span style="font-size:10px; font-family:'Estedad', sans-serif; background-color:#eaeaea; padding:2px 6px; border-radius:4px;">${c.country_code}</span>
               </div>
             </div>
             
             <div class="pricing-inputs">
               <div class="mini-input-group">
-                <label>التعرفة الأساسية (DH)</label>
+                <label>${currentLang === 'ar' ? 'التعرفة الأساسية (DH)' : 'Tarif de base (MAD)'}</label>
                 <input type="number" id="base-price-${c.country_code}" class="mini-input" value="${c.base_price}" ${disabledAttr}>
               </div>
               
               <div class="mini-input-group">
-                <label>سعر الكيلو الإضافي (DH)</label>
+                <label>${currentLang === 'ar' ? 'سعر الكيلو الإضافي (DH)' : 'Tarif par kg supp. (MAD)'}</label>
                 <input type="number" id="per-kg-${c.country_code}" class="mini-input" value="${c.price_per_kg}" ${disabledAttr}>
               </div>
               
@@ -2375,10 +2377,14 @@
     const logoText = document.querySelector('.logo-text');
     if (logoText) logoText.textContent = systemName;
 
-    document.title = `نظام شحن ${systemName} | وكالة نقل الطرود المغرب - أوروبا`;
+    document.title = currentLang === 'ar' 
+      ? `نظام شحن ${systemName} | وكالة نقل الطرود المغرب - أوروبا` 
+      : `Système de Cargo ${systemName} | Agence Maroc - Europe`;
 
     const loginTitle = document.querySelector('.login-title');
-    if (loginTitle) loginTitle.textContent = `وكالة ${systemName}`;
+    if (loginTitle) loginTitle.textContent = currentLang === 'ar' 
+      ? `وكالة ${systemName}` 
+      : `Agence ${systemName}`;
 
     const input = document.getElementById('settings-system-name');
     if (input) input.value = systemName;

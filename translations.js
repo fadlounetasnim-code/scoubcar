@@ -278,7 +278,10 @@ const translations = {
     date_previous: "سابق",
     price_calc_hint_initial: "قم باختيار الدولة وتحديد الوزن لحساب التسعير",
     price_calc_hint_edit: "سعر الشحن المعتمد لهذه الشحنة حالياً",
-    empty_chart_data: "لا توجد بيانات شحنات حالياً لعرض الرسم البياني."
+    empty_chart_data: "لا توجد بيانات شحنات حالياً لعرض الرسم البياني.",
+    sys_db_type_val: "قاعدة بيانات Supabase (سحابية)",
+    sys_currency_val: "الدرهم المغربي DH / MAD",
+    sys_range_val: "من المغرب نحو جميع دول أوروبا"
   },
   fr: {
     // Login Screen
@@ -559,7 +562,10 @@ const translations = {
     date_previous: "précédent",
     price_calc_hint_initial: "Choisissez le pays et le poids pour calculer le tarif",
     price_calc_hint_edit: "Tarif d'envoi actuellement validé pour ce colis",
-    empty_chart_data: "Aucune donnée d'envoi disponible pour afficher le graphique."
+    empty_chart_data: "Aucune donnée d'envoi disponible pour afficher le graphique.",
+    sys_db_type_val: "Base de données Supabase (Cloud)",
+    sys_currency_val: "Dirham Marocain (MAD)",
+    sys_range_val: "Du Maroc vers tous les pays d'Europe"
   }
 };
 
