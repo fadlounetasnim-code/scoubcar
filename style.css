@@ -1400,4 +1400,96 @@ dialog::backdrop {
   100% { background-position: -200% 0; }
 }
 
+/* ==========================================================================
+   SUPPORT FOR LTR LAYOUT (FRENCH LANGUAGE)
+   ========================================================================== */
+html[dir="ltr"] body {
+  direction: ltr;
+  text-align: left;
+}
+
+html[dir="ltr"] h1, 
+html[dir="ltr"] h2, 
+html[dir="ltr"] h3, 
+html[dir="ltr"] h4, 
+html[dir="ltr"] h5, 
+html[dir="ltr"] h6 {
+  text-align: left;
+}
+
+html[dir="ltr"] .sidebar {
+  border-left: none;
+  border-right: 1px solid var(--border-dark);
+}
+
+html[dir="ltr"] .top-header {
+  padding: 0 30px;
+}
+
+html[dir="ltr"] .custom-table {
+  text-align: left;
+}
+
+html[dir="ltr"] .custom-table th {
+  text-align: left;
+}
+
+html[dir="ltr"] .search-input-wrapper i {
+  left: 16px;
+  right: auto;
+}
+
+html[dir="ltr"] .search-input {
+  padding: 12px 16px 12px 46px;
+}
+
+html[dir="ltr"] .toast {
+  border-right: none;
+  border-left: 4px solid var(--primary-color);
+}
+
+/* Modal styling for LTR */
+html[dir="ltr"] .dialog-footer {
+  justify-content: flex-end;
+}
+
+/* Stacking for margins & paddings where RTL spacing was hardcoded */
+html[dir="ltr"] .btn-secondary i {
+  margin-right: 6px;
+  margin-left: 0;
+}
+html[dir="ltr"] .btn-primary i {
+  margin-right: 6px;
+  margin-left: 0;
+}
+
+/* Sidebar footer icons */
+html[dir="ltr"] .btn-logout i {
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+/* Mirror dashboard recent table back button icon */
+html[dir="ltr"] .btn-secondary .fa-arrow-left {
+  transform: rotate(180deg);
+  margin-left: 6px;
+  margin-right: 0;
+}
+
+/* Mirror collapsible mobile sidebar in LTR */
+@media (max-width: 768px) {
+  html[dir="ltr"] .sidebar {
+    left: -260px;
+    right: auto;
+    transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  
+  html[dir="ltr"] .sidebar.sidebar-open {
+    left: 0;
+    right: auto;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.25);
+  }
+}
+
+
 

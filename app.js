@@ -71,13 +71,81 @@
     if (overlay) overlay.style.display = 'none';
   }
 
+  // Translation helpers
+  let currentLang = localStorage.getItem('lang') || 'ar';
+
+  function t(key) {
+    if (window.translations && window.translations[currentLang] && window.translations[currentLang][key] !== undefined) {
+      return window.translations[currentLang][key];
+    }
+    return key;
+  }
+
+  function getCountryName(c) {
+    if (!c) return '';
+    if (window.countryNames && window.countryNames[currentLang] && window.countryNames[currentLang][c.country_code]) {
+      return window.countryNames[currentLang][c.country_code];
+    }
+    return c.country_name;
+  }
+
+  function changeLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    
+    // Sync dropdown values
+    const loginSelect = document.getElementById('login-lang-select');
+    if (loginSelect) loginSelect.value = lang;
+    
+    const headerSelect = document.getElementById('header-lang-select');
+    if (headerSelect) headerSelect.value = lang;
+
+    // Apply attributes on document
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar' ? 'rtl' : 'ltr');
+
+    translatePage();
+
+    // Redraw view & charts
+    markAllViewsDirty();
+    refreshActiveViewDebounced();
+    
+    if (typeof renderDashboardCharts === 'function') {
+      renderDashboardCharts();
+    }
+    
+    // Repopulate selects if cached data is loaded
+    if (cachedCountryPrices && cachedCountryPrices.length > 0) {
+      populateShipmentModalCountries();
+      populateShipmentsCountryFilter();
+    }
+  }
+
+  function translatePage() {
+    // Translate standard elements
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const val = t(key);
+      if (val !== undefined && val !== key) {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.placeholder = val;
+        } else {
+          el.textContent = val;
+        }
+      }
+    });
+  }
+
+  window.changeLanguage = changeLanguage;
+  window.t = t;
+
   const STATUS_AR = {
-    'received': 'قيد الاستلام',
-    'processing': 'قيد المعالجة',
-    'transit': 'في الطريق',
-    'arrived': 'وصلت بلد الوجهة',
-    'delivered': 'تم التسليم',
-    'cancelled': 'ملغاة'
+    get received() { return t('status_received'); },
+    get processing() { return t('status_processing'); },
+    get transit() { return t('status_transit'); },
+    get arrived() { return t('status_arrived'); },
+    get delivered() { return t('status_delivered'); },
+    get cancelled() { return t('status_cancelled'); }
   };
 
   function formatMAD(amount) {
@@ -240,12 +308,12 @@
 
       if (error) {
         if (errorMsg) {
-          errorMsg.textContent = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+          errorMsg.textContent = t('login_error_msg');
           errorMsg.style.display = 'block';
         }
-        showToast("فشل تسجيل الدخول. يرجى التحقق من المدخلات.", "error");
+        showToast(t('login_failed_toast'), "error");
       } else {
-        showToast("تم تسجيل الدخول بنجاح", "success");
+        showToast(t('login_success_toast'), "success");
       }
     } catch (err) {
       console.error("Login Error:", err);
@@ -261,7 +329,7 @@
       showLoader();
       try {
         await supabase.auth.signOut();
-        showToast("تم تسجيل الخروج بنجاح", "success");
+        showToast(t('logout_success_toast'), "success");
       } catch (e) {
         console.error(e);
       } finally {
@@ -409,7 +477,7 @@
 
     } catch (err) {
       console.error("Error loading database tables:", err);
-      showToast("فشل الاتصال بقاعدة البيانات. يرجى إعادة المحاولة.", "error");
+      showToast(t('connection_failed_db'), "error");
     }
   }
 
@@ -590,8 +658,8 @@
 
     switch (viewName) {
       case 'dashboard':
-        if (pageTitle) pageTitle.textContent = 'لوحة التحكم';
-        if (pageSubtitle) pageSubtitle.textContent = 'نظرة عامة على نشاط وكالة الشحن الدولي اليوم';
+        if (pageTitle) pageTitle.textContent = t('page_title_dashboard');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_dashboard');
         if (shouldRender || viewDirtyState['dashboard']) {
           renderDashboard();
           renderDashboardCharts();
@@ -599,40 +667,40 @@
         }
         break;
       case 'shipments':
-        if (pageTitle) pageTitle.textContent = 'الطرود والشحنات';
-        if (pageSubtitle) pageSubtitle.textContent = 'إدارة ومتابعة الشحنات والطرود الصادرة إلى أوروبا';
+        if (pageTitle) pageTitle.textContent = t('page_title_shipments');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_shipments');
         if (shouldRender || viewDirtyState['shipments']) {
           renderShipments();
           viewDirtyState['shipments'] = false;
         }
         break;
       case 'customers':
-        if (pageTitle) pageTitle.textContent = 'إدارة العملاء';
-        if (pageSubtitle) pageSubtitle.textContent = 'تسجيل وإدارة العملاء بالوكالة ومراجعة سجلات شحنهم';
+        if (pageTitle) pageTitle.textContent = t('page_title_customers');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_customers');
         if (shouldRender || viewDirtyState['customers']) {
           renderCustomers();
           viewDirtyState['customers'] = false;
         }
         break;
       case 'pricing':
-        if (pageTitle) pageTitle.textContent = 'تعرفة الشحن للدول الأوروبية';
-        if (pageSubtitle) pageSubtitle.textContent = 'تعديل وتحديد تسعيرة الشحن لكل بلد أوروبي بالدرهم';
+        if (pageTitle) pageTitle.textContent = t('page_title_pricing');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_pricing');
         if (shouldRender || viewDirtyState['pricing']) {
           renderPricingSettings();
           viewDirtyState['pricing'] = false;
         }
         break;
       case 'reports':
-        if (pageTitle) pageTitle.textContent = 'التقارير المالية والنشاط';
-        if (pageSubtitle) pageSubtitle.textContent = 'استعراض تقارير الأرباح والشحنات وتصديرها PDF أو Excel';
+        if (pageTitle) pageTitle.textContent = t('page_title_reports');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_reports');
         if (shouldRender || viewDirtyState['reports']) {
           generateReportData();
           viewDirtyState['reports'] = false;
         }
         break;
       case 'settings':
-        if (pageTitle) pageTitle.textContent = 'الإعدادات والنسخ الاحتياطي';
-        if (pageSubtitle) pageSubtitle.textContent = 'أدوات الصيانة، النسخ الاحتياطي لقاعدة البيانات واستعادتها';
+        if (pageTitle) pageTitle.textContent = t('page_title_settings');
+        if (pageSubtitle) pageSubtitle.textContent = t('page_subtitle_settings');
         if (shouldRender || viewDirtyState['settings']) {
           renderUsersSettings();
           viewDirtyState['settings'] = false;
@@ -777,13 +845,13 @@
         .slice(0, 5);
 
       if (sortedShipments.length === 0) {
-        recentTable.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">لا توجد شحنات مسجلة حالياً بالوكالة</td></tr>`;
+        recentTable.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">${t('empty_shipments')}</td></tr>`;
       } else {
         let recentHtml = '';
         sortedShipments.forEach(s => {
           const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
           const flag = countryObj ? countryObj.flag : '';
-          const countryName = countryObj ? countryObj.country_name : s.destination_country;
+          const countryName = countryObj ? getCountryName(countryObj) : s.destination_country;
 
           recentHtml += `
             <tr>
@@ -796,7 +864,7 @@
                   <span>${countryName}</span>
                 </div>
               </td>
-              <td>${s.weight} كجم (${s.quantity} طرود)</td>
+              <td>${s.weight} ${t('kg')} (${s.quantity} ${t('parcels')})</td>
               <td style="font-family:'Estedad', sans-serif; font-weight:700;">${formatMAD(s.shipping_price)}</td>
               <td><span class="badge badge-${s.status}">${STATUS_AR[s.status]}</span></td>
               <td>
@@ -824,7 +892,7 @@
         const count = shipments.filter(s => s.destination_country === c.country_code).length;
         if (count > 0) {
           countryStats.push({
-            name: c.country_name,
+            name: getCountryName(c),
             flag: c.flag,
             count: count
           });
@@ -834,7 +902,7 @@
       countryStats.sort((a, b) => b.count - a.count);
 
       if (countryStats.length === 0) {
-        countryBreakdown.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">لا توجد إحصائيات شحنات حالياً بالدول</div>`;
+        countryBreakdown.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">${t('empty_country_stats')}</div>`;
       } else {
         let breakdownHtml = '';
         countryStats.slice(0, 5).forEach(stat => {
@@ -843,7 +911,7 @@
             <div style="display:flex; flex-direction:column; gap:6px;">
               <div style="display:flex; justify-content:space-between; font-size:12px;">
                 <span style="font-weight:700;">${stat.flag} ${stat.name}</span>
-                <span style="color:var(--text-secondary); font-family:'Estedad', sans-serif; font-weight:700;">${stat.count} شحنات (${percentage.toFixed(0)}%)</span>
+                <span style="color:var(--text-secondary); font-family:'Estedad', sans-serif; font-weight:700;">${stat.count} ${t('shipments_label')} (${percentage.toFixed(0)}%)</span>
               </div>
               <div style="width:100%; height:8px; background-color:var(--light-bg); border-radius:4px; overflow:hidden;">
                 <div style="width:${percentage}%; height:100%; background-color:var(--primary-color); border-radius:4px;"></div>
@@ -902,7 +970,7 @@
           noDataEl = document.createElement('div');
           noDataEl.className = 'no-data-chart';
           noDataEl.style.cssText = 'text-align:center; padding:50px 0; color:var(--text-secondary); font-size:12px;';
-          noDataEl.innerHTML = '<i class="fa-solid fa-chart-pie" style="font-size:32px; margin-bottom:10px; opacity:0.5;"></i><br>لا توجد بيانات شحنات حالياً لعرض الرسم البياني.';
+          noDataEl.innerHTML = `<i class="fa-solid fa-chart-pie" style="font-size:32px; margin-bottom:10px; opacity:0.5;"></i><br>${t('empty_chart_data')}`;
           parent.appendChild(noDataEl);
         }
       } else {
@@ -1116,7 +1184,7 @@
       const displayedShipments = shipments.slice(0, shipmentsLimit);
 
       if (displayedShipments.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-secondary);">لا توجد شحنات مطابقة لخيارات البحث المحددة</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-secondary);">${t('empty_shipments_search')}</td></tr>`;
         const pagContainer = document.getElementById('shipments-pagination');
         if (pagContainer) pagContainer.style.display = 'none';
         return;
@@ -1126,7 +1194,7 @@
       displayedShipments.forEach(s => {
         const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
         const flag = countryObj ? countryObj.flag : '';
-        const countryName = countryObj ? countryObj.country_name : s.destination_country;
+        const countryName = countryObj ? getCountryName(countryObj) : s.destination_country;
 
         // Permission check for modifying shipment: admin can edit all, employee only their own
         const isOwnShipment = currentUser && s.employee_id === currentUser.id;
@@ -1134,11 +1202,11 @@
         const canDelete = currentUserRole === 'Admin';
 
         const editBtn = canEdit 
-          ? `<button class="btn-icon" title="تعديل" onclick="openEditShipmentModal('${s.tracking_number}')"><i class="fa-solid fa-pen-to-square"></i></button>`
-          : `<button class="btn-icon" disabled style="opacity:0.3; cursor:not-allowed;" title="لا يمكنك تعديل شحنات غيرك"><i class="fa-solid fa-pen-to-square"></i></button>`;
+          ? `<button class="btn-icon" title="${currentLang === 'ar' ? 'تعديل' : 'Modifier'}" onclick="openEditShipmentModal('${s.tracking_number}')"><i class="fa-solid fa-pen-to-square"></i></button>`
+          : `<button class="btn-icon" disabled style="opacity:0.3; cursor:not-allowed;" title="${currentLang === 'ar' ? 'لا يمكنك تعديل شحنات غيرك' : 'Vous ne pouvez pas modifier les envois des autres'}"><i class="fa-solid fa-pen-to-square"></i></button>`;
           
         const deleteBtn = canDelete
-          ? `<button class="btn-icon delete" title="حذف الشحنة" onclick="deleteShipmentData('${s.tracking_number}')"><i class="fa-solid fa-trash-can"></i></button>`
+          ? `<button class="btn-icon delete" title="${currentLang === 'ar' ? 'حذف الشحنة' : 'Supprimer l\'envoi'}" onclick="deleteShipmentData('${s.tracking_number}')"><i class="fa-solid fa-trash-can"></i></button>`
           : '';
 
         tableHtml += `
@@ -1161,15 +1229,15 @@
               <div style="font-size:11px; color:var(--text-secondary); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${s.full_address}</div>
             </td>
             <td>
-              <div style="font-weight:700;">${s.weight} كجم</div>
-              <div style="font-size:11px; color:var(--text-secondary);">${s.quantity} طرود</div>
+              <div style="font-weight:700;">${s.weight} ${t('kg')}</div>
+              <div style="font-size:11px; color:var(--text-secondary);">${s.quantity} ${t('parcels')}</div>
             </td>
             <td style="font-family:'Estedad', sans-serif; font-weight:800; font-size:14px; color:var(--text-dark);">${formatMAD(s.shipping_price)}</td>
             <td><span class="badge badge-${s.status}">${STATUS_AR[s.status]}</span></td>
             <td>
               <div class="actions-cell">
-                <button class="btn-icon" title="الفاتورة" onclick="openInvoiceModal('${s.tracking_number}')"><i class="fa-solid fa-file-invoice"></i></button>
-                <button class="btn-icon" title="تحديث الحالة" onclick="openStatusModal('${s.tracking_number}')"><i class="fa-solid fa-route"></i></button>
+                <button class="btn-icon" title="${currentLang === 'ar' ? 'الفاتورة' : 'Facture'}" onclick="openInvoiceModal('${s.tracking_number}')"><i class="fa-solid fa-file-invoice"></i></button>
+                <button class="btn-icon" title="${currentLang === 'ar' ? 'تحديث الحالة' : 'Mettre à jour le statut'}" onclick="openStatusModal('${s.tracking_number}')"><i class="fa-solid fa-route"></i></button>
                 ${editBtn}
                 ${deleteBtn}
               </div>
@@ -1185,9 +1253,9 @@
         if (totalFilteredCount > shipmentsLimit) {
           paginationContainer.style.display = 'flex';
           paginationContainer.innerHTML = `
-            <span class="pagination-info">يعرض ${displayedShipments.length} من أصل ${totalFilteredCount} شحنة</span>
+            <span class="pagination-info">${t('pagination_showing') || (currentLang === 'ar' ? 'يعرض' : 'Affichage de')} ${displayedShipments.length} ${t('pagination_of') || (currentLang === 'ar' ? 'من أصل' : 'sur')} ${totalFilteredCount} ${t('shipments_label')}</span>
             <button class="btn-load-more" onclick="loadMoreShipments()">
-              <i class="fa-solid fa-spinner"></i> تحميل المزيد
+              <i class="fa-solid fa-spinner"></i> ${t('btn_load_more') || (currentLang === 'ar' ? 'تحميل المزيد' : 'Charger plus')}
             </button>
           `;
         } else {
@@ -1209,7 +1277,7 @@
   function openNewShipmentModal() {
     currentEditingShipment = null;
     const titleEl = document.getElementById('shipment-modal-title');
-    if (titleEl) titleEl.textContent = 'تسجيل طرد شحن جديد';
+    if (titleEl) titleEl.textContent = t('modal_title_new_shipment');
     
     const newCode = generateTrackingNumber();
     const displayEl = document.getElementById('shipment-tracking-display');
@@ -1227,7 +1295,7 @@
     if (priceInput) priceInput.value = '';
     
     const priceHint = document.getElementById('price-calc-hint');
-    if (priceHint) priceHint.textContent = 'قم باختيار الدولة وتحديد الوزن لحساب التسعير';
+    if (priceHint) priceHint.textContent = t('price_calc_hint_initial');
     
     const modal = document.getElementById('shipment-modal');
     if (modal) modal.showModal();
@@ -1241,7 +1309,7 @@
 
     currentEditingShipment = shipment;
     const titleEl = document.getElementById('shipment-modal-title');
-    if (titleEl) titleEl.textContent = 'تعديل بيانات الشحنة';
+    if (titleEl) titleEl.textContent = t('modal_title_edit_shipment');
     
     const trackingDisplay = document.getElementById('shipment-tracking-display');
     if (trackingDisplay) trackingDisplay.textContent = shipment.tracking_number;
@@ -1288,7 +1356,7 @@
     if (notes) notes.value = shipment.notes || '';
 
     const calcHint = document.getElementById('price-calc-hint');
-    if (calcHint) calcHint.textContent = 'سعر الشحن المعتمد لهذه الشحنة حالياً';
+    if (calcHint) calcHint.textContent = t('price_calc_hint_edit');
     
     const modal = document.getElementById('shipment-modal');
     if (modal) modal.showModal();
@@ -1390,7 +1458,7 @@
         history.push({
           status: status,
           date: new Date().toISOString(),
-          note: 'تم تعديل تفاصيل الحالة'
+          note: currentLang === 'ar' ? 'تم تعديل تفاصيل الحالة' : 'Détails du statut modifiés'
         });
       }
 
@@ -1413,9 +1481,9 @@
         
       hideLoader();
       if (error) {
-        showToast("خطأ أثناء حفظ تعديلات الشحنة: " + error.message, "error");
+        showToast((currentLang === 'ar' ? "خطأ أثناء حفظ تعديلات الشحنة: " : "Erreur lors de la modification de l'envoi : ") + error.message, "error");
       } else {
-        showToast("تم تحديث الشحنة بنجاح", "success");
+        showToast(t('toast_shipment_updated'), "success");
         const modal = document.getElementById('shipment-modal');
         if (modal) modal.close();
       }
@@ -1425,7 +1493,7 @@
       const history = [{
         status: status,
         date: new Date().toISOString(),
-        note: 'تسجيل الشحنة بالمستودع'
+        note: currentLang === 'ar' ? 'تسجيل الشحنة بالمستودع' : 'Enregistrement du colis au dépôt'
       }];
       
       const newShipment = {
@@ -1453,7 +1521,7 @@
         
       if (error) {
         hideLoader();
-        showToast("خطأ أثناء تسجيل الشحنة الجديدة: " + error.message, "error");
+        showToast((currentLang === 'ar' ? "خطأ أثناء تسجيل الشحنة الجديدة: " : "Erreur lors de l'enregistrement du colis : ") + error.message, "error");
         return;
       }
 
@@ -1472,7 +1540,7 @@
       await safeDbCall(supabase.from('invoices').insert(newInvoice));
       
       hideLoader();
-      showToast("تم تسجيل الشحنة بنجاح وإنشاء وصل الفاتورة", "success");
+      showToast(t('toast_shipment_added'), "success");
       const modal = document.getElementById('shipment-modal');
       if (modal) modal.close();
     }
@@ -1482,7 +1550,10 @@
 
   async function deleteShipmentData(trackingNumber) {
     if (!supabase) return;
-    if (confirm(`هل أنت متأكد من حذف الشحنة رقم ${trackingNumber} نهائياً من قاعدة البيانات؟`)) {
+    const confirmMsg = currentLang === 'ar' 
+      ? `هل أنت متأكد من حذف الشحنة رقم ${trackingNumber} نهائياً من قاعدة البيانات؟` 
+      : `Voulez-vous vraiment supprimer définitivement l'envoi N° ${trackingNumber} de la base de données ?`;
+    if (confirm(confirmMsg)) {
       showLoader();
       const { error } = await supabase
         .from('shipments')
@@ -1491,9 +1562,9 @@
         
       hideLoader();
       if (error) {
-        showToast("خطأ أثناء حذف الشحنة: " + error.message, "error");
+        showToast((currentLang === 'ar' ? "خطأ أثناء حذف الشحنة: " : "Erreur lors de la suppression de l'envoi : ") + error.message, "error");
       } else {
-        showToast("تم حذف الشحنة بنجاح", "success");
+        showToast(t('toast_shipment_deleted'), "success");
       }
     }
   }
@@ -1527,7 +1598,7 @@
     if (!supabase) return;
     const trackingNumber = document.getElementById('status-update-tracking').value;
     const newStatus = document.getElementById('status-update-select').value;
-    const noteText = document.getElementById('status-update-note').value.trim() || 'تحديث روتيني لحالة الشحن';
+    const noteText = document.getElementById('status-update-note').value.trim() || (currentLang === 'ar' ? 'تحديث روتيني لحالة الشحن' : 'Mise à jour de routine du statut');
 
     const s = cachedShipments.find(ship => ship.tracking_number === trackingNumber);
     if (!s) return;
@@ -1549,9 +1620,9 @@
 
     hideLoader();
     if (error) {
-      showToast("خطأ أثناء تحديث حالة الشحنة: " + error.message, "error");
+      showToast((currentLang === 'ar' ? "خطأ أثناء تحديث حالة الشحنة: " : "Erreur lors de la mise à jour du statut : ") + error.message, "error");
     } else {
-      showToast("تم تحديث حالة الشحنة بنجاح", "success");
+      showToast(t('toast_status_updated'), "success");
       const modal = document.getElementById('status-modal');
       if (modal) modal.close();
     }
@@ -1587,13 +1658,13 @@
       tableBody.innerHTML = '';
 
       if (customers.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-secondary);">لا توجد عملاء مسجلين يطابقون مدخلات البحث</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-secondary);">${t('empty_customers_search')}</td></tr>`;
         return;
       }
 
       customers.forEach(c => {
         const deleteBtn = currentUserRole === 'Admin'
-          ? `<button class="btn-icon delete" title="حذف العميل" onclick="deleteCustomerData('${c.id}')"><i class="fa-solid fa-user-xmark"></i></button>`
+          ? `<button class="btn-icon delete" title="${currentLang === 'ar' ? 'حذف العميل' : 'Supprimer le client'}" onclick="deleteCustomerData('${c.id}')"><i class="fa-solid fa-user-xmark"></i></button>`
           : '';
 
         tableBody.innerHTML += `
@@ -1605,11 +1676,11 @@
             <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.address || '<span style="color:var(--text-secondary);">--</span>'}</td>
             <td style="font-family:'Estedad', sans-serif; font-weight:700;">${c.morocco_id}</td>
             <td style="font-size:11px; color:var(--text-secondary);">${c.created_at.split('T')[0]}</td>
-            <td style="font-family:'Estedad', sans-serif; font-weight:700;">${c.shipments_count} شحنات</td>
+            <td style="font-family:'Estedad', sans-serif; font-weight:700;">${c.shipments_count} ${t('shipments_label') || (currentLang === 'ar' ? 'شحنات' : 'envois')}</td>
             <td>
               <div class="actions-cell">
-                <button class="btn-icon" title="سجل الشحنات" onclick="openCustomerHistory('${c.id}')"><i class="fa-solid fa-list-check"></i></button>
-                <button class="btn-icon" title="تعديل" onclick="openEditCustomerModal('${c.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn-icon" title="${t('modal_title_history')}" onclick="openCustomerHistory('${c.id}')"><i class="fa-solid fa-list-check"></i></button>
+                <button class="btn-icon" title="${currentLang === 'ar' ? 'تعديل' : 'Modifier'}" onclick="openEditCustomerModal('${c.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
                 ${deleteBtn}
               </div>
             </td>
@@ -1624,7 +1695,7 @@
   function openNewCustomerModal() {
     currentEditingCustomer = null;
     const title = document.getElementById('customer-modal-title');
-    if (title) title.textContent = 'إضافة عميل جديد بالوكالة';
+    if (title) title.textContent = t('modal_title_new_customer');
     
     const form = document.getElementById('customer-form');
     if (form) form.reset();
@@ -1644,7 +1715,7 @@
 
     currentEditingCustomer = cust;
     const title = document.getElementById('customer-modal-title');
-    if (title) title.textContent = 'تعديل بيانات العميل';
+    if (title) title.textContent = t('modal_title_edit_customer');
     
     const editId = document.getElementById('customer-edit-id');
     if (editId) editId.value = cust.id;
@@ -1696,9 +1767,9 @@
         
       hideLoader();
       if (error) {
-        showToast("خطأ أثناء تحديث بيانات العميل: " + error.message, "error");
+        showToast(t('error_update_customer') + error.message, "error");
       } else {
-        showToast("تم تحديث العميل بنجاح", "success");
+        showToast(t('toast_customer_updated'), "success");
         const modal = document.getElementById('customer-modal');
         if (modal) modal.close();
       }
@@ -1731,11 +1802,15 @@
     if (!cust) return;
 
     if (cust.shipments_count > 0) {
-      showToast(`لا يمكن حذف هذا العميل نظراً لوجود شحنات مسجلة باسمه (${cust.shipments_count}) شحنات.`, "error");
+      const countMsg = t('toast_customer_has_shipments').replace('{count}', cust.shipments_count);
+      showToast(countMsg, "error");
       return;
     }
 
-    if (confirm(`هل أنت متأكد من حذف العميل "${cust.name}" نهائياً؟`)) {
+    const confirmMsg = currentLang === 'ar'
+      ? `هل أنت متأكد من حذف العميل "${cust.name}" نهائياً؟`
+      : `Voulez-vous vraiment supprimer définitivement le client "${cust.name}" ?`;
+    if (confirm(confirmMsg)) {
       showLoader();
       const { error } = await supabase
         .from('customers')
@@ -1744,9 +1819,9 @@
         
       hideLoader();
       if (error) {
-        showToast("خطأ أثناء حذف العميل: " + error.message, "error");
+        showToast((currentLang === 'ar' ? "خطأ أثناء حذف العميل: " : "Erreur lors de la suppression du client : ") + error.message, "error");
       } else {
-        showToast("تم حذف حساب العميل بنجاح", "success");
+        showToast(t('toast_customer_deleted'), "success");
       }
     }
   }
@@ -1758,7 +1833,7 @@
     if (!cust) return;
 
     const title = document.getElementById('history-modal-title');
-    if (title) title.textContent = `سجل شحنات العميل: ${cust.name}`;
+    if (title) title.textContent = `${t('modal_title_history')} : ${cust.name}`;
 
     const shipments = cachedShipments
       .filter(s => s.sender_customer_id === customerId)
@@ -1769,12 +1844,12 @@
       tableBody.innerHTML = '';
 
       if (shipments.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-secondary);">لا توجد شحنات سابقة مسجلة باسم هذا العميل</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-secondary);">${t('empty_history')}</td></tr>`;
       } else {
         shipments.forEach(s => {
           const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
           const flag = countryObj ? countryObj.flag : '';
-          const countryName = countryObj ? countryObj.country_name : s.destination_country;
+          const countryName = countryObj ? getCountryName(countryObj) : s.destination_country;
 
           tableBody.innerHTML += `
             <tr>
@@ -1782,7 +1857,7 @@
               <td style="font-size:11px;">${s.created_at.split('T')[0]}</td>
               <td><strong>${s.receiver_name}</strong></td>
               <td>${flag} ${countryName}</td>
-              <td>${s.weight} كجم</td>
+              <td>${s.weight} ${t('kg')}</td>
               <td style="font-family:'Estedad', sans-serif; font-weight:700;">${formatMAD(s.shipping_price)}</td>
               <td><span class="badge badge-${s.status}">${STATUS_AR[s.status]}</span></td>
             </tr>
@@ -1824,14 +1899,14 @@
       container.innerHTML = '';
 
       if (countries.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">لا توجد دول مطابقة لمدخلات البحث</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">${t('empty_pricing_search')}</div>`;
         return;
       }
 
       const isAdmin = currentUserRole === 'Admin';
       const disabledAttr = isAdmin ? '' : 'disabled';
       const saveBtn = isAdmin 
-        ? (cCode) => `<button class="btn-primary" style="padding: 8px 16px; font-size:11px;" onclick="saveCountryPriceRate('${cCode}')"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>`
+        ? (cCode) => `<button class="btn-primary" style="padding: 8px 16px; font-size:11px;" onclick="saveCountryPriceRate('${cCode}')"><i class="fa-solid fa-floppy-disk"></i> ${t('btn_save') || (currentLang === 'ar' ? 'حفظ' : 'Enregistrer')}</button>`
         : () => '';
 
       countries.forEach(c => {
@@ -1882,9 +1957,9 @@
 
     hideLoader();
     if (error) {
-      showToast("خطأ أثناء حفظ تعديل السعر: " + error.message, "error");
+      showToast((currentLang === 'ar' ? "خطأ أثناء حفظ تعديل السعر: " : "Erreur lors de la modification des tarifs : ") + error.message, "error");
     } else {
-      showToast("تم تحديث أسعار الشحن بنجاح", "success");
+      showToast(t('toast_pricing_updated'), "success");
       const row = document.getElementById(`pricing-row-${countryCode}`);
       if (row) {
         row.style.borderColor = 'var(--color-success)';
@@ -1913,7 +1988,7 @@
 
     const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
     const flag = countryObj ? countryObj.flag : '';
-    const countryName = countryObj ? countryObj.country_name : s.destination_country;
+    const countryName = countryObj ? getCountryName(countryObj) : s.destination_country;
 
     const invoicePrintArea = document.getElementById('invoice-print-area');
     
@@ -1925,35 +2000,35 @@
               <i class="fa-solid fa-paper-plane"></i>
             </div>
             <div>
-              <h1 class="invoice-company-name">وكالة أطلس إكسبريس</h1>
-              <p class="invoice-company-sub">لنقل الطرود والشحنات الدولية نحو أوروبا</p>
+              <h1 class="invoice-company-name">${t('invoice_company_name')}</h1>
+              <p class="invoice-company-sub">${t('invoice_company_sub')}</p>
             </div>
           </div>
           <div class="invoice-meta">
-            <h2 class="invoice-title-text">وصل شحن طرد</h2>
-            <div class="invoice-number">رقم الفاتورة: <span style="font-family:'Estedad', sans-serif;">${invoiceNum}</span></div>
-            <div class="invoice-date">تاريخ الإرسال: ${s.created_at.split('T')[0]}</div>
+            <h2 class="invoice-title-text">${t('invoice_title_text')}</h2>
+            <div class="invoice-number">${t('invoice_number_label')} <span style="font-family:'Estedad', sans-serif;">${invoiceNum}</span></div>
+            <div class="invoice-date">${t('invoice_date_label')} ${s.created_at.split('T')[0]}</div>
           </div>
         </div>
 
         <div class="invoice-parties">
           <div class="party-box">
-            <div class="party-title">المرسل (المغرب)</div>
+            <div class="party-title">${t('invoice_sender_title')}</div>
             <div class="party-name">${s.sender_name}</div>
             <div class="party-details">
-              <span>الهاتف: ${s.sender_phone}</span>
-              <span>الهوية الوطنية: ${s.notes || '--'}</span>
+              <span>${t('invoice_sender_phone')} ${s.sender_phone}</span>
+              <span>${t('invoice_sender_id')} ${s.notes || '--'}</span>
             </div>
           </div>
 
           <div class="party-box">
-            <div class="party-title">المستلم (أوروبا)</div>
+            <div class="party-title">${t('invoice_receiver_title')}</div>
             <div class="party-name">${s.receiver_name}</div>
             <div class="party-details">
-              <span>البلد: ${flag} ${countryName}</span>
-              <span>المدينة: ${s.city}</span>
-              <span>الهاتف: ${s.receiver_phone}</span>
-              <span>العنوان: ${s.full_address}</span>
+              <span>${t('invoice_receiver_country')} ${flag} ${countryName}</span>
+              <span>${t('invoice_receiver_city')} ${s.city}</span>
+              <span>${t('invoice_receiver_phone')} ${s.receiver_phone}</span>
+              <span>${t('invoice_receiver_address')} ${s.full_address}</span>
             </div>
           </div>
         </div>
@@ -1961,19 +2036,19 @@
         <table class="invoice-table">
           <thead>
             <tr>
-              <th>تفاصيل الشحنة والخدمة</th>
-              <th style="text-align:center;">الوزن</th>
-              <th style="text-align:center;">عدد الطرود</th>
-              <th style="text-align:left;">المبلغ الفرعي</th>
+              <th>${t('invoice_details_header')}</th>
+              <th style="text-align:center;">${t('invoice_table_poids')}</th>
+              <th style="text-align:center;">${t('invoice_table_colis')}</th>
+              <th style="text-align:left;">${t('invoice_table_subtotal')}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>
-                <strong>شحن دولي جوي وبري سريع</strong><br>
-                <span style="font-size:11px; color:#555;">من المغرب نحو ${countryName} (رقم التتبع: ${s.tracking_number})</span>
+                <strong>${t('invoice_service_desc')}</strong><br>
+                <span style="font-size:11px; color:#555;">${t('invoice_service_sub').replace('{country}', countryName).replace('{tracking}', s.tracking_number)}</span>
               </td>
-              <td style="text-align:center; font-family:'Estedad', sans-serif;">${s.weight} كجم</td>
+              <td style="text-align:center; font-family:'Estedad', sans-serif;">${s.weight} ${t('kg')}</td>
               <td style="text-align:center; font-family:'Estedad', sans-serif;">${s.quantity}</td>
               <td style="text-align:left; font-family:'Estedad', sans-serif; font-weight:700;">${formatMAD(s.shipping_price)}</td>
             </tr>
@@ -1982,25 +2057,25 @@
 
         <div class="invoice-totals">
           <div class="total-row">
-            <span>السعر الخاضع للضريبة:</span>
+            <span>${t('invoice_taxable')}</span>
             <span style="font-family:'Estedad', sans-serif;">${formatMAD(s.shipping_price * 0.8)}</span>
           </div>
           <div class="total-row">
-            <span>الضريبة المضافة (20%):</span>
+            <span>${t('invoice_vat')}</span>
             <span style="font-family:'Estedad', sans-serif;">${formatMAD(s.shipping_price * 0.2)}</span>
           </div>
           <div class="total-row grand-total">
-            <span>المجموع الإجمالي:</span>
+            <span>${t('invoice_grand_total')}</span>
             <span style="font-family:'Estedad', sans-serif;">${formatMAD(s.shipping_price)}</span>
           </div>
         </div>
 
         <div style="background-color:#e8f5e9; border:1px solid #c8e6c9; border-radius:8px; padding:12px; margin-bottom:30px; text-align:center; font-weight:700; color:#2e7d32; display:flex; align-items:center; justify-content:center; gap:8px;">
-          <i class="fa-solid fa-circle-check"></i> تم تسديد ثمن الشحن بالكامل بالدرهم المغربي (DH)
+          <i class="fa-solid fa-circle-check"></i> ${t('invoice_paid_full')}
         </div>
 
         <div class="invoice-footer">
-          <p>شكراً لثقتكم بوكالة أطلس للشحن الدولي. لأي استفسار يرجى التواصل عبر الرقم الموحد بالوكالة.</p>
+          <p>${t('invoice_footer_thanks')}</p>
           <p style="margin-top:6px; font-size:10px; color:#a1a1a6;">Atlas Cargo System - Supabase Realtime Engine</p>
         </div>
       `;
@@ -2060,23 +2135,23 @@
       summaryGrid.innerHTML = `
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">الشحنات بالتقرير</span>
-            <span class="kpi-value">${totalCount} شحنات</span>
+            <span class="kpi-title">${t('report_kpi_total')}</span>
+            <span class="kpi-value">${totalCount} ${t('shipments_label') || (currentLang === 'ar' ? 'شحنات' : 'envois')}</span>
           </div>
           <div class="kpi-icon kpi-all"><i class="fa-solid fa-boxes-stacked"></i></div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">الوزن الإجمالي المشحون</span>
-            <span class="kpi-value">${totalWeight.toFixed(1)} كجم</span>
+            <span class="kpi-title">${currentLang === 'ar' ? 'الوزن الإجمالي المشحون' : 'Poids total expédié'}</span>
+            <span class="kpi-value">${totalWeight.toFixed(1)} ${t('kg')}</span>
           </div>
           <div class="kpi-icon kpi-transit"><i class="fa-solid fa-weight-scale"></i></div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">مداخيل الشحن (MAD)</span>
+            <span class="kpi-title">${t('report_kpi_revenue')}</span>
             <span class="kpi-value">${formatMAD(grossBilling)}</span>
           </div>
           <div class="kpi-icon kpi-delivered"><i class="fa-solid fa-chart-line"></i></div>
@@ -2084,7 +2159,7 @@
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">صافي الأرباح المقدرة (35%)</span>
+            <span class="kpi-title">${currentLang === 'ar' ? 'صافي الأرباح المقدرة (35%)' : 'Bénéfice net estimé (35%)'}</span>
             <span class="kpi-value" style="color:var(--color-success);">${formatMAD(estimatedProfit)}</span>
           </div>
           <div class="kpi-icon kpi-revenue"><i class="fa-solid fa-hand-holding-dollar"></i></div>
@@ -2097,14 +2172,14 @@
       tableBody.innerHTML = '';
 
       if (filtered.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">لا توجد شحنات مسجلة في هذا النطاق الزمني</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">${t('empty_report_data')}</td></tr>`;
         return;
       }
 
       filtered.forEach(s => {
         const countryObj = cachedCountryPrices.find(c => c.country_code === s.destination_country);
         const flag = countryObj ? countryObj.flag : '';
-        const countryName = countryObj ? countryObj.country_name : s.destination_country;
+        const countryName = countryObj ? getCountryName(countryObj) : s.destination_country;
 
         tableBody.innerHTML += `
           <tr>
@@ -2113,7 +2188,7 @@
             <td><strong>${s.sender_name}</strong></td>
             <td>${s.receiver_name}</td>
             <td>${flag} ${countryName} - ${s.city}</td>
-            <td style="font-family:'Estedad', sans-serif;">${s.weight} كجم</td>
+            <td style="font-family:'Estedad', sans-serif;">${s.weight} ${t('kg')}</td>
             <td style="font-family:'Estedad', sans-serif; font-weight:700;">${formatMAD(s.shipping_price)}</td>
             <td><span class="badge badge-${s.status}">${STATUS_AR[s.status]}</span></td>
           </tr>
@@ -2229,9 +2304,9 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToast("تم تصدير النسخة الاحتياطية بنجاح", "success");
+      showToast(t('toast_backup_exported'), "success");
     } catch (e) {
-      showToast('فشل تصدير النسخة الاحتياطية لقاعدة البيانات: ' + e.message, "error");
+      showToast(t('toast_backup_failed') + e.message, "error");
     }
   }
 
@@ -2241,7 +2316,7 @@
     if (!supabase) return;
     const fileInput = document.getElementById('backup-file-input');
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-      showToast('يرجى اختيار ملف النسخة الاحتياطية (.json) أولاً.', "error");
+      showToast(t('toast_choose_backup'), "error");
       return;
     }
 
@@ -2257,7 +2332,7 @@
           throw new Error('Invalid backup format. Missing data payload.');
         }
         
-        if (confirm('تنبيه: سيتم دمج/استرجاع هذه البيانات مباشرة على قاعدة بيانات Supabase. هل ترغب في الاستمرار؟')) {
+        if (confirm(t('confirm_restore_db'))) {
           showLoader();
           const backupData = parsed.data;
           
@@ -2276,12 +2351,12 @@
           }
           
           hideLoader();
-          showToast('تمت استعادة النسخة الاحتياطية بنجاح على قاعدة بيانات Supabase!', "success");
+          showToast(t('toast_backup_restored'), "success");
           setTimeout(() => window.location.reload(), 1500);
         }
       } catch (err) {
         hideLoader();
-        showToast('فشل استعادة البيانات. تأكد من صحة الملف المختار: ' + err.message, "error");
+        showToast(t('toast_restore_failed') + err.message, "error");
       }
     };
 
@@ -2324,11 +2399,11 @@
 
     hideLoader();
     if (error) {
-      showToast("خطأ أثناء حفظ التغييرات: " + error.message, "error");
+      showToast((currentLang === 'ar' ? "خطأ أثناء حفظ التغييرات: " : "Erreur lors de la sauvegarde : ") + error.message, "error");
     } else {
       localStorage.setItem('atlas_system_name', value);
       loadSystemName();
-      showToast('تم حفظ اسم النظام الجديد بنجاح.', "success");
+      showToast(t('toast_sysname_saved'), "success");
     }
   }
 
@@ -2343,12 +2418,12 @@
     
     users.forEach(u => {
       const isSelf = currentUser && currentUser.id === u.id;
-      const roleAr = u.role === 'Admin' ? 'مدير كامل الصلاحيات' : 'موظف وكالة';
-      const dateFormatted = u.created_at ? u.created_at.split('T')[0] : 'سابق';
+      const roleAr = u.role === 'Admin' ? t('role_admin_val') : t('role_staff_val');
+      const dateFormatted = u.created_at ? u.created_at.split('T')[0] : t('date_previous');
 
       const deleteButton = isSelf 
-        ? `<button class="btn-icon" disabled style="opacity:0.3; cursor:not-allowed;" title="لا يمكنك حذف حسابك الحالي"><i class="fa-solid fa-user-slash"></i></button>`
-        : `<button class="btn-icon delete" title="حذف المستخدم" onclick="deleteUserSetting('${u.id}')"><i class="fa-solid fa-user-minus"></i></button>`;
+        ? `<button class="btn-icon" disabled style="opacity:0.3; cursor:not-allowed;" title="${t('title_cannot_delete_self')}"><i class="fa-solid fa-user-slash"></i></button>`
+        : `<button class="btn-icon delete" title="${t('title_delete_user')}" onclick="deleteUserSetting('${u.id}')"><i class="fa-solid fa-user-minus"></i></button>`;
 
       tableBody.innerHTML += `
         <tr>
@@ -2386,19 +2461,19 @@
     }
 
     if (!email || !fullnameInput || !passwordInput || !roleInput) {
-      showToast('يرجى ملء جميع الحقول المطلوبة.', "error");
+      showToast(t('toast_fields_required'), "error");
       return;
     }
 
     if (passwordInput.length < 6) {
-      showToast('يجب أن تكون كلمة المرور مكونة من 6 أحرف على الأقل.', "error");
+      showToast(t('toast_password_length'), "error");
       return;
     }
 
     // Check locally first
     const existing = cachedUsers.find(u => u.email === email);
     if (existing) {
-      showToast('البريد الإلكتروني/المستخدم مسجل بالفعل بالوكالة.', "error");
+      showToast(t('toast_user_exists'), "error");
       return;
     }
 
@@ -2422,11 +2497,11 @@
 
       hideLoader();
       if (error) {
-        showToast("فشل تسجيل المستخدم الجديد في Supabase Auth: " + error.message, "error");
+        showToast(t('toast_auth_signup_failed') + error.message, "error");
       } else {
         const form = document.getElementById('add-user-form');
         if (form) form.reset();
-        showToast('تم إضافة الموظف الجديد بنجاح في نظام الوكالة.', "success");
+        showToast(t('toast_user_added'), "success");
       }
     } catch (err) {
       hideLoader();
@@ -2441,19 +2516,25 @@
     const user = cachedUsers.find(u => u.id === userId);
     if (!user) return;
 
-    if (confirm(`هل أنت متأكد من حذف حساب الموظف "${user.name}" (${user.email}) نهائياً من النظام؟`)) {
+    const confirmMsg = currentLang === 'ar'
+      ? `هل أنت متأكد من حذف حساب الموظف "${user.name}" (${user.email}) نهائياً من النظام؟`
+      : `Voulez-vous vraiment supprimer le compte de l'employé "${user.name}" (${user.email}) définitivement du système ?`;
+    if (confirm(confirmMsg)) {
       showLoader();
       const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId });
       
       hideLoader();
       if (error) {
-        showToast("خطأ أثناء حذف حساب المستخدم: " + error.message, "error");
+        showToast((currentLang === 'ar' ? "خطأ أثناء حذف حساب المستخدم: " : "Erreur lors de la suppression de l'utilisateur : ") + error.message, "error");
       } else {
-        showToast('تم حذف المستخدم بنجاح.', "success");
+        showToast(t('toast_user_deleted'), "success");
       }
     }
   }
 
   window.deleteUserSetting = deleteUserSetting;
+
+  // Initialize language on script run
+  changeLanguage(currentLang);
 
 })();
