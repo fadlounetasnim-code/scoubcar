@@ -571,3 +571,6 @@ const countryNames = {
     'FR': 'France', 'ES': 'Espagne', 'IT': 'Italie', 'DE': 'Allemagne', 'BE': 'Belgique', 'NL': 'Pays-Bas', 'GB': 'Royaume-Uni', 'PT': 'Portugal', 'CH': 'Suisse', 'SE': 'Suède', 'NO': 'Norvège', 'DK': 'Danemark', 'FI': 'Finlande', 'IE': 'Irlande', 'AT': 'Autriche', 'PL': 'Pologne', 'TR': 'Turquie', 'GR': 'Grèce', 'RO': 'Roumanie', 'CZ': 'République Tchèque', 'HU': 'Hongrie', 'BG': 'Bulgarie', 'HR': 'Croatie', 'LT': 'Lituanie', 'LV': 'Lettonie', 'EE': 'Estonie', 'SK': 'Slovaquie', 'SI': 'Slovénie', 'LU': 'Luxembourg', 'CY': 'Chypre', 'MT': 'Malte', 'AL': 'Albanie', 'AD': 'Andorre', 'BA': 'Bosnie-Herzégovine', 'IS': 'Islande', 'XK': 'Kosovo', 'LI': 'Liechtenstein', 'MK': 'Macédoine du Nord', 'MC': 'Monaco', 'ME': 'Monténégro', 'SM': 'Saint-Marin', 'RS': 'Serbie', 'UA': 'Ukraine', 'BY': 'Biélorussie'
   }
 };
+
+window.translations = translations;
+window.countryNames = countryNames;
